@@ -1,0 +1,15 @@
+{
+  "name": "a4a-revamp-backup",
+  "version": "1.0.0",
+  "main": "src.1859388c (1).js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "globe.gl": "^2.43.0"
+  }
+}

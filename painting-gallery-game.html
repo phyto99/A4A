@@ -9,9 +9,16 @@
     <link rel="stylesheet" href="global.da2a4795 (1).css">
     <link rel="stylesheet" href="src.3607d8e2 (1).css">
     
+    <!-- Globe.gl -->
+    <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+    
     <style>
         /* CUSTOM STYLES - CLEARLY SEPARATED FROM ORIGINAL */
         /* ================================================ */
+        
+        body { 
+            margin: 0; 
+        }
         
         .game-container {
             display: flex;
@@ -20,38 +27,51 @@
             position: relative;
         }
         
-        .map-section {
-            flex: 1;
-            position: relative;
-            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-            overflow: hidden;
-        }
-        
-        .city-block {
+        .globe-section {
             position: absolute;
-            width: 60px;
-            height: 30px;
-            border: 1px solid #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 1;
+            transition: filter 0.3s ease, opacity 0.3s ease;
         }
         
-        .city-block:hover {
-            transform: scale(1.1);
-            z-index: 10;
+        .globe-section.blurred {
+            filter: blur(8px) brightness(0.3);
+        }
+        
+        #globeViz {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .content-overlay {
+            position: relative;
+            z-index: 2;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+        
+        .content-overlay > * {
+            pointer-events: auto;
         }
         
         .gallery-section {
-            height: 300px;
-            background: #000;
+            flex: 1;
+            background: rgba(0, 0, 0, 0.8);
             border-top: 2px solid #fff;
             overflow-y: auto;
             padding: 20px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .gallery-section.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
         
         .paintings-grid {
@@ -63,7 +83,7 @@
         .painting-card {
             border: 2px solid #fff;
             padding: 15px;
-            background: #111;
+            background: rgba(17, 17, 17, 0.9);
             transition: all 0.3s ease;
         }
         
@@ -97,14 +117,6 @@
             margin-bottom: 10px;
         }
         
-        .region-colors {
-            europe: #ff6b6b;
-            asia: #4ecdc4;
-            americas: #45b7d1;
-            africa: #f9ca24;
-            oceania: #6c5ce7;
-        }
-        
         .loading {
             text-align: center;
             padding: 50px;
@@ -116,54 +128,65 @@
             text-align: center;
             padding: 20px;
         }
-        
-        .map-title {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 2em;
-            z-index: 100;
-        }
-        
-        .legend {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border: 1px solid #fff;
-            border-radius: 5px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-            border: 1px solid #fff;
-        }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <!-- Map Section -->
-        <div class="map-section">
-            <h1 class="map-title title-font">Art Popularity Map</h1>
-            <div id="cityMap"></div>
-            
-
+        <!-- Globe Section (Background) -->
+        <div class="globe-section">
+            <div id="globeViz"></div>
         </div>
         
-        <!-- Gallery Section -->
-        <div class="gallery-section">
-            <div id="paintingsContainer">
-                <div class="loading">Loading paintings...</div>
+        <!-- Content Overlay -->
+        <div class="content-overlay">
+            <!-- Header with Game Controls -->
+            <header style="padding: 10px; background-color: rgba(40, 44, 52, 0.9); color: white; font-size: 12px;">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; font-size: 14px;">Game Controls</h3>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button onclick="setGamePhase('nomination')" 
+                                        style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" 
+                                        id="nominationBtn">Nomination</button>
+                                <button onclick="setGamePhase('bidding')" 
+                                        style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" 
+                                        id="biddingBtn">Bidding Phase</button>
+                                <button onclick="setGamePhase('travel')" 
+                                        style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" 
+                                        id="travelBtn">Travel</button>
+                                <button onclick="resetGame()" 
+                                        style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset Game</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; font-size: 14px;">Player Status</h3>
+                            <div style="display: flex; gap: 15px; font-size: 11px;">
+                                <div>
+                                    <strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span> countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries"></div>
+                                </div>
+                                <div>
+                                    <strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span> countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 11px; color: #ccc;" id="gameStatus">
+                            <div id="roundStatus">1 / 3 rounds of nominate, auction</div>
+                            <div id="stageStatus">1/3 nomination - next stage: bidding</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Gallery Section -->
+            <div class="gallery-section" id="gallerySection">
+                <div id="paintingsContainer">
+                    <div class="loading">Loading paintings...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -172,28 +195,40 @@
         // CUSTOM JAVASCRIPT - CLEARLY SEPARATED FROM ORIGINAL
         // ==================================================
         
+        let gamePhase = 'nomination';
+        let currentRound = 1;
+        let totalRounds = 3;
+        let travelCount = 0;
+        let maxTravels = 3;
+        let playerCountries = {
+            player1: [],
+            player2: []
+        };
+        let globe;
+        
+        // Sample cities data with coordinates
+        const cities = [
+            { name: 'New York', lat: 40.7128, lng: -74.0060, region: 'north america', popularity: 9 },
+            { name: 'London', lat: 51.5074, lng: -0.1278, region: 'europe', popularity: 8 },
+            { name: 'Paris', lat: 48.8566, lng: 2.3522, region: 'europe', popularity: 9 },
+            { name: 'Tokyo', lat: 35.6762, lng: 139.6503, region: 'east asia', popularity: 7 },
+            { name: 'Berlin', lat: 52.5200, lng: 13.4050, region: 'europe', popularity: 6 },
+            { name: 'Rome', lat: 41.9028, lng: 12.4964, region: 'europe', popularity: 8 },
+            { name: 'Sydney', lat: -33.8688, lng: 151.2093, region: 'oceania', popularity: 5 },
+            { name: 'Cairo', lat: 30.0444, lng: 31.2357, region: 'africa', popularity: 4 },
+            { name: 'Mumbai', lat: 19.0760, lng: 72.8777, region: 'south asia', popularity: 6 },
+            { name: 'São Paulo', lat: -23.5505, lng: -46.6333, region: 'south america', popularity: 5 }
+        ];
+        
         class ArtGalleryGame {
             constructor() {
                 this.paintings = [];
-                this.cities = [
-                    { name: 'NYC', x: 25, y: 40, region: 'north america', popularity: 9 },
-                    { name: 'LON', x: 50, y: 30, region: 'europe', popularity: 8 },
-                    { name: 'PAR', x: 52, y: 35, region: 'europe', popularity: 9 },
-                    { name: 'TOK', x: 85, y: 45, region: 'east asia', popularity: 7 },
-                    { name: 'BER', x: 55, y: 32, region: 'europe', popularity: 6 },
-                    { name: 'ROM', x: 55, y: 42, region: 'europe', popularity: 8 },
-                    { name: 'SYD', x: 88, y: 75, region: 'oceania', popularity: 5 },
-                    { name: 'CAI', x: 60, y: 55, region: 'subsaharan africa', popularity: 4 },
-                    { name: 'MUM', x: 75, y: 50, region: 'south asia', popularity: 6 },
-                    { name: 'SAO', x: 35, y: 70, region: 'south america', popularity: 5 }
-                ];
                 this.regionColors = {
                     'north america': 'blue',
                     'south america': 'red', 
                     'oceania': 'lime',
                     'europe': 'cyan',
-                    'middle east': 'magenta',
-                    'subsaharan africa': 'yellow',
+                    'africa': 'yellow',
                     'south asia': 'orange',
                     'east asia': 'darkred'
                 };
@@ -201,47 +236,176 @@
             }
             
             async init() {
-                this.renderMap();
+                console.log('Initializing game...');
+                this.initGlobe();
                 await this.fetchPaintings();
+                console.log('Paintings fetched:', this.paintings.length);
                 this.renderPaintings();
+                this.updateUI();
             }
             
-            renderMap() {
-                const mapContainer = document.getElementById('cityMap');
+            initGlobe() {
+                try {
+                    console.log('Initializing globe...');
+                    const globeElement = document.getElementById('globeViz');
+                    if (!globeElement) {
+                        console.error('Globe container not found!');
+                        return;
+                    }
+                    
+                    console.log('Globe element found, dimensions:', globeElement.clientWidth, 'x', globeElement.clientHeight);
+                    
+                    // Check if Globe constructor is available
+                    if (typeof Globe === 'undefined') {
+                        console.error('Globe constructor not available!');
+                        return;
+                    }
+                    
+                    console.log('Creating Globe instance...');
+                    // Initialize globe with cities
+                    globe = new Globe(globeElement)
+                        .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
+                        .backgroundColor('rgba(0,0,0,1)')
+                        .labelsData(cities)
+                        .labelLat(d => d.lat)
+                        .labelLng(d => d.lng)
+                        .labelText(d => d.name)
+                        .labelSize(d => Math.sqrt(d.popularity) * 1.2)
+                        .labelDotRadius(d => Math.sqrt(d.popularity) * 0.6)
+                        .labelColor(() => 'rgba(255, 165, 0, 1.0)')
+                        .labelResolution(2)
+                        .onLabelClick((label) => {
+                            console.log('City clicked:', label.name);
+                            this.handleCityClick(label);
+                        });
+                    
+                    console.log('Globe instance created, setting up resize...');
+                    
+                    // Force multiple resizes to ensure proper rendering
+                    const resizeGlobe = () => {
+                        if (globe && globe.renderer && globeElement.clientWidth > 0) {
+                            console.log('Resizing globe to:', globeElement.clientWidth, 'x', globeElement.clientHeight);
+                            globe.renderer().setSize(globeElement.clientWidth, globeElement.clientHeight);
+                            globe.camera().aspect = globeElement.clientWidth / globeElement.clientHeight;
+                            globe.camera().updateProjectionMatrix();
+                        }
+                    };
+                    
+                    setTimeout(resizeGlobe, 100);
+                    setTimeout(resizeGlobe, 500);
+                    setTimeout(resizeGlobe, 1000);
+                    
+                    // Add window resize listener
+                    window.addEventListener('resize', resizeGlobe);
+                    
+                    console.log('Globe initialized successfully');
+                } catch (error) {
+                    console.error('Error initializing globe:', error);
+                    console.error('Error stack:', error.stack);
+                }
+            }
+            
+            handleCityClick(city) {
+                if (gamePhase === 'nomination') {
+                    // Add city to current player's countries
+                    const currentPlayer = playerCountries.player1.length <= playerCountries.player2.length ? 'player1' : 'player2';
+                    if (!playerCountries[currentPlayer].includes(city.name)) {
+                        playerCountries[currentPlayer].push(city.name);
+                        this.updateUI();
+                    }
+                } else if (gamePhase === 'travel') {
+                    travelCount++;
+                    this.updateUI();
+                    // Auto-advance if max travels reached
+                    if (travelCount >= maxTravels) {
+                        this.advanceRound();
+                    }
+                }
+            }
+            
+            advanceRound() {
+                if (currentRound < totalRounds) {
+                    currentRound++;
+                    travelCount = 0;
+                    gamePhase = 'nomination';
+                } else {
+                    // Game complete
+                    gamePhase = 'complete';
+                }
+                this.updateUI();
+            }
+            
+            updateUI() {
+                document.getElementById('player1Count').textContent = playerCountries.player1.length;
+                document.getElementById('player2Count').textContent = playerCountries.player2.length;
+                document.getElementById('player1Countries').textContent = playerCountries.player1.join(', ');
+                document.getElementById('player2Countries').textContent = playerCountries.player2.join(', ');
                 
-                this.cities.forEach(city => {
-                    const cityBlock = document.createElement('div');
-                    cityBlock.className = 'city-block';
-                    cityBlock.textContent = city.name;
-                    
-                    // Position based on popularity (0-10 scale)
-                    cityBlock.style.left = `${city.x}%`;
-                    cityBlock.style.top = `${city.y}%`;
-                    
-                    // Use red-blue gradient from Svelte CSS for popularity
-                    const popularityPercent = (city.popularity / 10) * 100;
-                    cityBlock.style.background = `linear-gradient(90deg, #0068ff ${100-popularityPercent}%, #ff2500 ${popularityPercent}%)`;
-                    
-                    // Add region outline color
-                    cityBlock.style.borderColor = this.regionColors[city.region];
-                    cityBlock.style.borderWidth = '3px';
-                    
-                    cityBlock.addEventListener('click', () => {
-                        this.showCityInfo(city);
-                    });
-                    
-                    mapContainer.appendChild(cityBlock);
+                // Update game status
+                this.updateGameStatus();
+                
+                // Update button styles
+                document.querySelectorAll('header button').forEach(btn => {
+                    btn.style.backgroundColor = '#555';
                 });
+                
+                const activeBtn = document.getElementById(gamePhase + 'Btn') || 
+                                 (gamePhase === 'nomination' ? document.querySelector('button[onclick*="nomination"]') : null);
+                if (activeBtn) {
+                    activeBtn.style.backgroundColor = '#4CAF50';
+                }
+                
+                // Handle gallery visibility and globe blur based on game phase
+                const gallerySection = document.getElementById('gallerySection');
+                const globeSection = document.querySelector('.globe-section');
+                
+                if (gamePhase === 'travel') {
+                    gallerySection.classList.add('hidden');
+                    globeSection.classList.remove('blurred');
+                } else {
+                    gallerySection.classList.remove('hidden');
+                    globeSection.classList.add('blurred');
+                }
             }
             
-            showCityInfo(city) {
-                alert(`${city.name}\nRegion: ${city.region}\nPopularity: ${city.popularity}/10`);
+            updateGameStatus() {
+                const roundStatus = document.getElementById('roundStatus');
+                const stageStatus = document.getElementById('stageStatus');
+                
+                if (gamePhase === 'complete') {
+                    roundStatus.textContent = 'Game Complete!';
+                    stageStatus.textContent = 'All rounds finished';
+                    return;
+                }
+                
+                // Update round status
+                roundStatus.textContent = `${currentRound} / ${totalRounds} rounds of nominate, auction`;
+                
+                // Update stage status
+                let stageText = '';
+                let nextStage = '';
+                
+                if (gamePhase === 'nomination') {
+                    stageText = `${currentRound}/3 nomination`;
+                    nextStage = 'bidding';
+                } else if (gamePhase === 'bidding') {
+                    stageText = `${currentRound}/3 bidding`;
+                    nextStage = 'travel';
+                } else if (gamePhase === 'travel') {
+                    stageText = `${travelCount}/${maxTravels} travel`;
+                    if (travelCount >= maxTravels) {
+                        nextStage = currentRound < totalRounds ? 'next round' : 'game complete';
+                    } else {
+                        nextStage = 'continue travel';
+                    }
+                }
+                
+                stageStatus.textContent = `${stageText} - next stage: ${nextStage}`;
             }
             
             async fetchPaintings() {
+                console.log('Fetching paintings...');
                 try {
-                    // Since we can't directly access Airtable without API key, 
-                    // I'll create sample data that matches the structure
                     this.paintings = [
                         {
                             title: "The Starry Night",
@@ -292,30 +456,39 @@
                             image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg"
                         }
                     ];
+                    console.log('Paintings loaded:', this.paintings.length);
                 } catch (error) {
                     console.error('Error fetching paintings:', error);
-                    document.getElementById('paintingsContainer').innerHTML = 
-                        '<div class="error">Failed to load paintings. Using sample data.</div>';
+                    this.paintings = [];
                 }
             }
             
             renderPaintings() {
+                console.log('Rendering paintings...');
                 const container = document.getElementById('paintingsContainer');
                 
+                if (!container) {
+                    console.error('Paintings container not found!');
+                    return;
+                }
+                
                 if (this.paintings.length === 0) {
+                    console.log('No paintings to render');
                     container.innerHTML = '<div class="error">No paintings found.</div>';
                     return;
                 }
                 
+                console.log('Creating grid for', this.paintings.length, 'paintings');
                 const grid = document.createElement('div');
                 grid.className = 'paintings-grid';
                 
-                this.paintings.forEach(painting => {
+                this.paintings.forEach((painting, index) => {
+                    console.log('Rendering painting', index + 1, ':', painting.title);
                     const card = document.createElement('div');
                     card.className = 'painting-card';
                     
                     // Add region outline color
-                    card.style.borderColor = this.regionColors[painting.region];
+                    card.style.borderColor = this.regionColors[painting.region] || '#fff';
                     
                     card.innerHTML = `
                         <div class="painting-title title-font">${painting.title}</div>
@@ -334,10 +507,10 @@
                 
                 container.innerHTML = '';
                 container.appendChild(grid);
+                console.log('Paintings rendered successfully');
             }
             
             showPaintingDetails(painting) {
-                // Create a modal-like effect using existing Svelte styles
                 const modal = document.createElement('div');
                 modal.style.cssText = `
                     position: fixed;
@@ -373,9 +546,80 @@
             }
         }
         
+        // Global functions for button handlers
+        function setGamePhase(phase) {
+            if (phase === 'travel') {
+                travelCount = 0; // Reset travel count when entering travel phase
+            }
+            gamePhase = phase;
+            if (game) {
+                game.updateUI();
+            }
+        }
+        
+        function resetGame() {
+            gamePhase = 'nomination';
+            currentRound = 1;
+            travelCount = 0;
+            playerCountries = {
+                player1: [],
+                player2: []
+            };
+            if (game) {
+                game.updateUI();
+            }
+        }
+        
+        let game;
+        
         // Initialize the game when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new ArtGalleryGame();
+            console.log('DOM loaded, initializing game...');
+            
+            // Function to initialize the game
+            function initializeGame() {
+                try {
+                    console.log('Starting game initialization...');
+                    game = new ArtGalleryGame();
+                } catch (error) {
+                    console.error('Error initializing game:', error);
+                    console.error('Error stack:', error.stack);
+                }
+            }
+            
+            // Wait a bit for the DOM to be fully ready
+            setTimeout(() => {
+                // Check if Globe is available
+                if (typeof Globe === 'undefined') {
+                    console.error('Globe.gl not loaded from initial script! Trying CDN fallback...');
+                    // Fallback to CDN
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/globe.gl';
+                    script.onload = () => {
+                        console.log('Globe.gl loaded from CDN');
+                        setTimeout(initializeGame, 200);
+                    };
+                    script.onerror = () => {
+                        console.error('Failed to load Globe.gl from CDN, trying alternative...');
+                        // Try alternative CDN
+                        const altScript = document.createElement('script');
+                        altScript.src = 'https://unpkg.com/globe.gl';
+                        altScript.onload = () => {
+                            console.log('Globe.gl loaded from alternative CDN');
+                            setTimeout(initializeGame, 200);
+                        };
+                        altScript.onerror = () => {
+                            console.error('All CDN attempts failed, initializing without globe');
+                            initializeGame();
+                        };
+                        document.head.appendChild(altScript);
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    console.log('Globe.gl available, starting game...');
+                    initializeGame();
+                }
+            }, 100);
         });
     </script>
 </body>
