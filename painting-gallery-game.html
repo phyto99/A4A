@@ -36,6 +36,11 @@
             background: #000;
             z-index: 1;
             transition: filter 0.3s ease, opacity 0.3s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            pointer-events: auto;
         }
         
         .globe-section.blurred {
@@ -45,6 +50,15 @@
         #globeViz {
             width: 100%;
             height: 100%;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
         }
         
         .content-overlay {
@@ -206,19 +220,26 @@
         };
         let globe;
         
-        // Sample cities data with coordinates
+        // Sample cities data with coordinates (keeping your existing cities)
         const cities = [
-            { name: 'New York', lat: 40.7128, lng: -74.0060, region: 'north america', popularity: 9 },
-            { name: 'London', lat: 51.5074, lng: -0.1278, region: 'europe', popularity: 8 },
-            { name: 'Paris', lat: 48.8566, lng: 2.3522, region: 'europe', popularity: 9 },
-            { name: 'Tokyo', lat: 35.6762, lng: 139.6503, region: 'east asia', popularity: 7 },
-            { name: 'Berlin', lat: 52.5200, lng: 13.4050, region: 'europe', popularity: 6 },
-            { name: 'Rome', lat: 41.9028, lng: 12.4964, region: 'europe', popularity: 8 },
-            { name: 'Sydney', lat: -33.8688, lng: 151.2093, region: 'oceania', popularity: 5 },
-            { name: 'Cairo', lat: 30.0444, lng: 31.2357, region: 'africa', popularity: 4 },
-            { name: 'Mumbai', lat: 19.0760, lng: 72.8777, region: 'south asia', popularity: 6 },
-            { name: 'São Paulo', lat: -23.5505, lng: -46.6333, region: 'south america', popularity: 5 }
+            { name: 'New York', lat: 40.7128, lng: -74.0060, region: 'north america', popularity: 9, iata: 'JFK' },
+            { name: 'London', lat: 51.5074, lng: -0.1278, region: 'europe', popularity: 8, iata: 'LHR' },
+            { name: 'Paris', lat: 48.8566, lng: 2.3522, region: 'europe', popularity: 9, iata: 'CDG' },
+            { name: 'Tokyo', lat: 35.6762, lng: 139.6503, region: 'east asia', popularity: 7, iata: 'NRT' },
+            { name: 'Berlin', lat: 52.5200, lng: 13.4050, region: 'europe', popularity: 6, iata: 'TXL' },
+            { name: 'Rome', lat: 41.9028, lng: 12.4964, region: 'europe', popularity: 8, iata: 'FCO' },
+            { name: 'Sydney', lat: -33.8688, lng: 151.2093, region: 'oceania', popularity: 5, iata: 'SYD' },
+            { name: 'Cairo', lat: 30.0444, lng: 31.2357, region: 'africa', popularity: 4, iata: 'CAI' },
+            { name: 'Mumbai', lat: 19.0760, lng: 72.8777, region: 'south asia', popularity: 6, iata: 'BOM' },
+            { name: 'São Paulo', lat: -23.5505, lng: -46.6333, region: 'south america', popularity: 5, iata: 'GRU' }
         ];
+
+        function csvParseRows(csvText, parseFunction) {
+            return csvText.split('\n').filter(line => line.trim()).map(line => {
+                const fields = line.split(',').map(field => field.replace(/^"/, '').replace(/"$/, ''));
+                return parseFunction(fields);
+            }).filter(Boolean);
+        }
         
         class ArtGalleryGame {
             constructor() {
@@ -244,7 +265,7 @@
                 this.updateUI();
             }
             
-            initGlobe() {
+            async initGlobe() {
                 try {
                     console.log('Initializing globe...');
                     const globeElement = document.getElementById('globeViz');
@@ -262,7 +283,7 @@
                     }
                     
                     console.log('Creating Globe instance...');
-                    // Initialize globe with cities
+                    // Initialize globe with cities and real route data
                     globe = new Globe(globeElement)
                         .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
                         .backgroundColor('rgba(0,0,0,1)')
@@ -277,9 +298,32 @@
                         .onLabelClick((label) => {
                             console.log('City clicked:', label.name);
                             this.handleCityClick(label);
+                        })
+                        // Arc configuration matching reference code
+                        .arcLabel(d => `${d.airline}: ${d.srcIata} → ${d.dstIata}`)
+                        .arcStartLat(d => d.srcAirport.lat)
+                        .arcStartLng(d => d.srcAirport.lng)
+                        .arcEndLat(d => d.dstAirport.lat)
+                        .arcEndLng(d => d.dstAirport.lng)
+                        .arcColor(d => [`rgba(0, 255, 0, 0.3)`, `rgba(255, 0, 0, 0.3)`])
+                        .arcDashLength(0.4)
+                        .arcDashGap(0.2)
+                        .arcDashAnimateTime(1500)
+                        .onArcHover(hoverArc => {
+                            globe.arcColor(d => {
+                                const op = !hoverArc ? 0.3 : d === hoverArc ? 0.9 : 0.3 / 4;
+                                return [`rgba(0, 255, 0, ${op})`, `rgba(255, 0, 0, ${op})`];
+                            });
                         });
                     
-                    console.log('Globe instance created, setting up resize...');
+                    console.log('Globe instance created, loading real flight data...');
+                    
+                    // Load real flight data
+                    await this.loadFlightData();
+                    
+                    // Prevent drag ghosting by disabling image dragging
+                    globeElement.addEventListener('dragstart', (e) => e.preventDefault());
+                    globeElement.addEventListener('selectstart', (e) => e.preventDefault());
                     
                     // Force multiple resizes to ensure proper rendering
                     const resizeGlobe = () => {
@@ -302,6 +346,37 @@
                 } catch (error) {
                     console.error('Error initializing globe:', error);
                     console.error('Error stack:', error.stack);
+                }
+            }
+            
+            async loadFlightData() {
+                try {
+                    const [airportsRes, routesRes] = await Promise.all([
+                        fetch('https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat'),
+                        fetch('https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat')
+                    ]);
+                    
+                    const airports = csvParseRows(await airportsRes.text(), 
+                        ([id, name, city, country, iata, icao, lat, lng]) => 
+                            ({ iata, city, country, lat: +lat, lng: +lng }));
+                    
+                    const routes = csvParseRows(await routesRes.text(),
+                        ([airline, id, srcIata, srcId, dstIata, dstId, share, stops]) => 
+                            ({ airline, srcIata, dstIata, stops }));
+                    
+                    const cityIatas = cities.map(c => c.iata);
+                    const airportMap = {};
+                    airports.filter(a => cityIatas.includes(a.iata)).forEach(a => airportMap[a.iata] = a);
+                    
+                    const arcs = routes
+                        .filter(r => r.stops === '0' && airportMap[r.srcIata] && airportMap[r.dstIata])
+                        .map(r => ({ ...r, srcAirport: airportMap[r.srcIata], dstAirport: airportMap[r.dstIata] }));
+                    
+                    globe.arcsData(arcs);
+                    console.log('Loaded', arcs.length, 'flight routes');
+                } catch (error) {
+                    console.error('Flight data load failed:', error);
+                    globe.arcsData([]);
                 }
             }
             
