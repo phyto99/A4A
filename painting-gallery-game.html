@@ -143,6 +143,26 @@
             text-align: center;
             padding: 20px;
         }
+
+        /* Bidding System Integration */
+        .painting-card.wrapper.svelte-1pd0inp {
+            border: 2px solid #fff;
+            padding: 0;
+            background: rgba(17, 17, 17, 0.9);
+            transition: all 0.3s ease;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .painting-card.wrapper.svelte-1pd0inp.over {
+            border-color: grey;
+            color: grey;
+        }
+
+        .painting-card.wrapper.svelte-1pd0inp:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 
@@ -217,7 +237,7 @@
         // CUSTOM JAVASCRIPT - CLEARLY SEPARATED FROM ORIGINAL
         // ==================================================
 
-        let gamePhase = 'nomination';
+        let gamePhase = 'bidding';
         let currentRound = 1;
         let totalRounds = 3;
         let travelCount = 0;
@@ -573,16 +593,56 @@
                     // Add region outline color
                     card.style.borderColor = this.regionColors[painting.region] || '#fff';
 
-                    card.innerHTML = `
-                        <div class="painting-title title-font">${painting.title}</div>
-                        <div class="painting-author">${painting.author} | ${painting.year}</div>
-                        <div class="painting-type">${painting.type}</div>
-                        <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
-                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
-                    `;
+                    if (gamePhase === 'bidding') {
+                        card.className = 'painting-card wrapper svelte-1pd0inp';
+                        card.innerHTML = `
+                            <div class="center svelte-1pd0inp">
+                                <div class="script svelte-1pd0inp">
+                                    <h1 class="svelte-1pd0inp">${painting.title}</h1>
+                                    <div class="detail svelte-1pd0inp">${painting.author} | ${painting.year}</div>
+                                    <div class="detail svelte-1pd0inp">${painting.type}</div>
+                                    <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
+                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: 120px; object-fit: cover; margin: 10px 0;">
+                                    <div class="painting-meters svelte-1pd0inp">
+                                        ${Array.from({length: 10}, (_, i) => `
+                                            <div class="painting-meter-row svelte-1pd0inp">
+                                                <div class="painting-meter-sections svelte-1pd0inp">
+                                                    ${Array.from({length: 10}, (_, j) => `<div class="painting-meter-section svelte-1pd0inp"></div>`).join('')}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="left svelte-1pd0inp">
+                                <div class="bids svelte-1pd0inp">
+                                    <div class="bid svelte-1nlw3im">Team A: $150</div>
+                                    <div class="bid svelte-1nlw3im">Team B: $200</div>
+                                    <div class="bid svelte-1nlw3im">Team C: $175</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        card.innerHTML = `
+                            <div class="painting-title title-font">${painting.title}</div>
+                            <div class="painting-author">${painting.author} | ${painting.year}</div>
+                            <div class="painting-type">${painting.type}</div>
+                            <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
+                        `;
+                    }
 
                     card.addEventListener('click', () => {
-                        this.showPaintingDetails(painting);
+                        if (gamePhase === 'bidding') {
+                            // Toggle bidding complete state
+                            card.classList.toggle('over');
+                            const script = card.querySelector('.script');
+                            if (script) {
+                                script.classList.toggle('over');
+                            }
+                        } else {
+                            this.showPaintingDetails(painting);
+                        }
                     });
 
                     grid.appendChild(card);
@@ -637,6 +697,7 @@
             gamePhase = phase;
             if (game) {
                 game.updateUI();
+                game.renderPaintings(); // Re-render paintings when phase changes
             }
         }
 
