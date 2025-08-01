@@ -163,6 +163,118 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
         }
+
+        /* Redesigned bidding system styling */
+        .bids.svelte-1pd0inp {
+            padding: 0 !important;
+            margin: 0;
+            width: 100%;
+            position: relative;
+        }
+
+        .bid-button {
+            background: #000;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-align: center;
+            min-width: 60px;
+            border-radius: 0;
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .bid-button:hover {
+            background: #fff;
+            color: #000;
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        .bid-button-text {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .bid-button-amount {
+            font-size: 0.9em;
+        }
+
+        .bid-display.svelte-1nlw3im {
+            width: 100%;
+            padding: 10px 15px;
+            margin: 0;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 60px;
+            transition: all 0.3s ease;
+            animation: svelte-1nlw3im-pop-in 0.45s;
+        }
+
+        .bid-display:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .timer-section {
+            text-align: left;
+        }
+
+        .timer-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #fff;
+            line-height: 1;
+            opacity: 1;
+        }
+
+        .timer-text {
+            font-size: 0.7em;
+            color: #fff;
+            margin-top: 2px;
+            opacity: 1;
+        }
+
+        .bid-info {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .current-bid-label {
+            font-size: 0.9em;
+            color: #fff;
+            margin-bottom: 2px;
+            opacity: 1;
+        }
+
+        .current-bid-amount {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+            opacity: 1;
+        }
+
+        /* Adjust script padding to make room for button */
+        .script.svelte-1pd0inp.svelte-1pd0inp {
+            padding-bottom: 200px;
+        }
+
+        /* Remove padding from container and make it snap to edges */
+        .center.svelte-1pd0inp {
+            margin-bottom: 0;
+        }
+
+        .left.svelte-1pd0inp {
+            margin-top: 0;
+            padding: 0;
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -566,13 +678,45 @@
                 }
             }
 
+            initializeBiddingData() {
+                // Initialize simple bidding data for each painting
+                this.biddingData = this.paintings.map((painting, index) => ({
+                    paintingId: index,
+                    currentBid: 2.5,
+                    currentTeam: index % 3, // Rotate teams: 0=cyan, 1=magenta, 2=lime
+                    timeRemaining: 15.750,
+                    isActive: true
+                }));
+            }
+
+            getCurrentTeamColor(paintingIndex) {
+                const colors = ['cyan', 'magenta', 'lime'];
+                return colors[paintingIndex % 3];
+            }
+
+            getCurrentTeamColorRGBA(paintingIndex, opacity = 0.1) {
+                const colorMap = {
+                    'cyan': `rgba(0, 255, 255, ${opacity})`,
+                    'magenta': `rgba(255, 0, 255, ${opacity})`,
+                    'lime': `rgba(0, 255, 0, ${opacity})`
+                };
+                const colors = ['cyan', 'magenta', 'lime'];
+                const colorName = colors[paintingIndex % 3];
+                return colorMap[colorName];
+            }
+
             renderPaintings() {
-                console.log('Rendering paintings...');
+                console.log('Rendering paintings... gamePhase:', gamePhase);
                 const container = document.getElementById('paintingsContainer');
 
                 if (!container) {
                     console.error('Paintings container not found!');
                     return;
+                }
+
+                // Initialize bidding data if in bidding phase
+                if (gamePhase === 'bidding') {
+                    this.initializeBiddingData();
                 }
 
                 if (this.paintings.length === 0) {
@@ -615,10 +759,21 @@
                                 </div>
                             </div>
                             <div class="left svelte-1pd0inp">
-                                <div class="bids svelte-1pd0inp">
-                                    <div class="bid svelte-1nlw3im">Team A: $150</div>
-                                    <div class="bid svelte-1nlw3im">Team B: $200</div>
-                                    <div class="bid svelte-1nlw3im">Team C: $175</div>
+                                <div class="bids svelte-1pd0inp" data-painting-id="${index}">
+                                    <button class="bid-button" data-painting-id="${index}">
+                                        <div class="bid-button-text">Bid</div>
+                                        <div class="bid-button-amount">$3.0M</div>
+                                    </button>
+                                    <div class="bid-display svelte-1nlw3im" style="background-color: ${this.getCurrentTeamColorRGBA(index, 0.1)}; border: 3px solid ${this.getCurrentTeamColor(index)};" data-painting-id="${index}">
+                                        <div class="timer-section">
+                                            <div class="timer-number">15.750</div>
+                                            <div class="timer-text">Sec. remaining</div>
+                                        </div>
+                                        <div class="bid-info">
+                                            <div class="current-bid-label">Current bid:</div>
+                                            <div class="current-bid-amount">$2.5M</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -632,18 +787,30 @@
                         `;
                     }
 
-                    card.addEventListener('click', () => {
-                        if (gamePhase === 'bidding') {
-                            // Toggle bidding complete state
-                            card.classList.toggle('over');
-                            const script = card.querySelector('.script');
-                            if (script) {
-                                script.classList.toggle('over');
-                            }
-                        } else {
-                            this.showPaintingDetails(painting);
+                    if (gamePhase === 'bidding') {
+                        // Add click handler for bid button
+                        const bidButton = card.querySelector('.bid-button');
+                        if (bidButton) {
+                            bidButton.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                this.handleBidClick(card, index);
+                            });
                         }
-                    });
+
+                        // Start timer for this painting
+                        this.startBiddingTimer(card, index);
+
+                        // Add click handler for main card (non-bidding areas)
+                        card.addEventListener('click', (e) => {
+                            if (!e.target.closest('.bid-button') && !e.target.closest('.bid-display')) {
+                                this.showPaintingDetails(painting);
+                            }
+                        });
+                    } else {
+                        card.addEventListener('click', () => {
+                            this.showPaintingDetails(painting);
+                        });
+                    }
 
                     grid.appendChild(card);
                 });
@@ -651,6 +818,83 @@
                 container.innerHTML = '';
                 container.appendChild(grid);
                 console.log('Paintings rendered successfully');
+            }
+
+            handleBidClick(card, paintingIndex) {
+                console.log('Bid clicked for painting', paintingIndex);
+                
+                const bidData = this.biddingData[paintingIndex];
+                const colors = ['cyan', 'magenta', 'lime'];
+                
+                // Increase bid by 0.5M
+                bidData.currentBid += 0.5;
+                
+                // Rotate to next team
+                bidData.currentTeam = (bidData.currentTeam + 1) % 3;
+                const newTeamColor = colors[bidData.currentTeam];
+                
+                // Update display
+                const bidDisplay = card.querySelector('.bid-display');
+                const currentBidElement = card.querySelector('.current-bid-amount');
+                const bidButton = card.querySelector('.bid-button');
+                const buttonAmount = bidButton.querySelector('.bid-button-amount');
+                
+                // Update colors and amounts - 10% opacity fill with colored border
+                const colorMap = {
+                    'cyan': 'rgba(0, 255, 255, 0.1)',
+                    'magenta': 'rgba(255, 0, 255, 0.1)',
+                    'lime': 'rgba(0, 255, 0, 0.1)'
+                };
+                bidDisplay.style.backgroundColor = colorMap[newTeamColor];
+                bidDisplay.style.borderColor = newTeamColor;
+                currentBidElement.textContent = `$${bidData.currentBid.toFixed(1)}M`;
+                buttonAmount.textContent = `$${(bidData.currentBid + 0.5).toFixed(1)}M`;
+                
+                // Trigger pop-in animation on the colored box
+                bidDisplay.classList.remove('svelte-1nlw3im');
+                setTimeout(() => {
+                    bidDisplay.classList.add('svelte-1nlw3im');
+                }, 10);
+            }
+
+            startBiddingTimer(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const timerNumber = card.querySelector('.timer-number');
+                
+                const timer = setInterval(() => {
+                    bidData.timeRemaining -= 0.001;
+                    
+                    if (bidData.timeRemaining <= 0) {
+                        clearInterval(timer);
+                        bidData.timeRemaining = 0;
+                        this.endBidding(card);
+                    }
+                    
+                    // Update timer display
+                    timerNumber.textContent = bidData.timeRemaining.toFixed(3);
+                }, 1);
+                
+                // Store timer reference for cleanup
+                card.dataset.timerId = timer;
+            }
+
+            endBidding(card) {
+                console.log('Bidding ended for painting');
+                
+                // Mark as over
+                card.classList.add('over');
+                const script = card.querySelector('.script');
+                if (script) {
+                    script.classList.add('over');
+                }
+                
+                // Disable bid button
+                const bidButton = card.querySelector('.bid-button');
+                if (bidButton) {
+                    bidButton.disabled = true;
+                    bidButton.style.opacity = '0.5';
+                    bidButton.style.cursor = 'not-allowed';
+                }
             }
 
             showPaintingDetails(painting) {
