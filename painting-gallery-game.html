@@ -1,32 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Art Gallery Explorer</title>
-    
+
     <!-- Link to existing Svelte CSS files -->
     <link rel="stylesheet" href="global.da2a4795 (1).css">
     <link rel="stylesheet" href="src.3607d8e2 (1).css">
-    
+
     <!-- Globe.gl -->
     <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
-    
+
     <style>
         /* CUSTOM STYLES - CLEARLY SEPARATED FROM ORIGINAL */
         /* ================================================ */
-        
-        body { 
-            margin: 0; 
+
+        body {
+            margin: 0;
         }
-        
+
         .game-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
             position: relative;
         }
-        
+
         .globe-section {
             position: absolute;
             top: 0;
@@ -42,11 +43,11 @@
             -ms-user-select: none;
             pointer-events: auto;
         }
-        
+
         .globe-section.blurred {
             filter: blur(8px) brightness(0.3);
         }
-        
+
         #globeViz {
             width: 100%;
             height: 100%;
@@ -60,7 +61,7 @@
             -o-user-drag: none;
             user-drag: none;
         }
-        
+
         .content-overlay {
             position: relative;
             z-index: 2;
@@ -69,11 +70,11 @@
             flex-direction: column;
             pointer-events: none;
         }
-        
-        .content-overlay > * {
+
+        .content-overlay>* {
             pointer-events: auto;
         }
-        
+
         .gallery-section {
             flex: 1;
             background: rgba(0, 0, 0, 0.8);
@@ -82,47 +83,47 @@
             padding: 20px;
             transition: opacity 0.3s ease;
         }
-        
+
         .gallery-section.hidden {
             opacity: 0;
             pointer-events: none;
         }
-        
+
         .paintings-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
         }
-        
+
         .painting-card {
             border: 2px solid #fff;
             padding: 15px;
             background: rgba(17, 17, 17, 0.9);
             transition: all 0.3s ease;
         }
-        
+
         .painting-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
         }
-        
+
         .painting-title {
             font-size: 1.2em;
             margin-bottom: 5px;
         }
-        
+
         .painting-author {
             font-size: 0.9em;
             color: #ccc;
             margin-bottom: 5px;
         }
-        
+
         .painting-type {
             font-size: 0.8em;
             color: #999;
             margin-bottom: 10px;
         }
-        
+
         .painting-image {
             width: 100%;
             height: 150px;
@@ -130,13 +131,13 @@
             border: 1px solid #666;
             margin-bottom: 10px;
         }
-        
+
         .loading {
             text-align: center;
             padding: 50px;
             font-size: 1.5em;
         }
-        
+
         .error {
             color: #ff4757;
             text-align: center;
@@ -144,45 +145,52 @@
         }
     </style>
 </head>
+
 <body>
     <div class="game-container">
         <!-- Globe Section (Background) -->
         <div class="globe-section">
             <div id="globeViz"></div>
         </div>
-        
+
         <!-- Content Overlay -->
         <div class="content-overlay">
             <!-- Header with Game Controls -->
             <header style="padding: 10px; background-color: rgba(40, 44, 52, 0.9); color: white; font-size: 12px;">
-                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                <div
+                    style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <div>
                             <h3 style="margin: 0 0 5px 0; font-size: 14px;">Game Controls</h3>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button onclick="setGamePhase('nomination')" 
-                                        style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" 
-                                        id="nominationBtn">Nomination</button>
-                                <button onclick="setGamePhase('bidding')" 
-                                        style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" 
-                                        id="biddingBtn">Bidding Phase</button>
-                                <button onclick="setGamePhase('travel')" 
-                                        style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" 
-                                        id="travelBtn">Travel</button>
-                                <button onclick="resetGame()" 
-                                        style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset Game</button>
+                                <button onclick="setGamePhase('nomination')"
+                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
+                                    id="nominationBtn">Nomination</button>
+                                <button onclick="setGamePhase('bidding')"
+                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
+                                    id="biddingBtn">Bidding Phase</button>
+                                <button onclick="setGamePhase('travel')"
+                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
+                                    id="travelBtn">Travel</button>
+                                <button onclick="resetGame()"
+                                    style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset
+                                    Game</button>
                             </div>
                         </div>
                         <div>
                             <h3 style="margin: 0 0 5px 0; font-size: 14px;">Player Status</h3>
                             <div style="display: flex; gap: 15px; font-size: 11px;">
                                 <div>
-                                    <strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span> countries
-                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries"></div>
+                                    <strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span>
+                                    countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries">
+                                    </div>
                                 </div>
                                 <div>
-                                    <strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span> countries
-                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries"></div>
+                                    <strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span>
+                                    countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -195,7 +203,7 @@
                     </div>
                 </div>
             </header>
-            
+
             <!-- Gallery Section -->
             <div class="gallery-section" id="gallerySection">
                 <div id="paintingsContainer">
@@ -208,7 +216,7 @@
     <script>
         // CUSTOM JAVASCRIPT - CLEARLY SEPARATED FROM ORIGINAL
         // ==================================================
-        
+
         let gamePhase = 'nomination';
         let currentRound = 1;
         let totalRounds = 3;
@@ -219,7 +227,7 @@
             player2: []
         };
         let globe;
-        
+
         // Sample cities data with coordinates (keeping your existing cities)
         const cities = [
             { name: 'New York', lat: 40.7128, lng: -74.0060, region: 'north america', popularity: 9, iata: 'JFK' },
@@ -240,13 +248,13 @@
                 return parseFunction(fields);
             }).filter(Boolean);
         }
-        
+
         class ArtGalleryGame {
             constructor() {
                 this.paintings = [];
                 this.regionColors = {
                     'north america': 'blue',
-                    'south america': 'red', 
+                    'south america': 'red',
                     'oceania': 'lime',
                     'europe': 'cyan',
                     'africa': 'yellow',
@@ -255,7 +263,7 @@
                 };
                 this.init();
             }
-            
+
             async init() {
                 console.log('Initializing game...');
                 this.initGlobe();
@@ -264,7 +272,7 @@
                 this.renderPaintings();
                 this.updateUI();
             }
-            
+
             async initGlobe() {
                 try {
                     console.log('Initializing globe...');
@@ -273,15 +281,15 @@
                         console.error('Globe container not found!');
                         return;
                     }
-                    
+
                     console.log('Globe element found, dimensions:', globeElement.clientWidth, 'x', globeElement.clientHeight);
-                    
+
                     // Check if Globe constructor is available
                     if (typeof Globe === 'undefined') {
                         console.error('Globe constructor not available!');
                         return;
                     }
-                    
+
                     console.log('Creating Globe instance...');
                     // Initialize globe with cities and real route data
                     globe = new Globe(globeElement)
@@ -315,16 +323,16 @@
                                 return [`rgba(0, 255, 0, ${op})`, `rgba(255, 0, 0, ${op})`];
                             });
                         });
-                    
+
                     console.log('Globe instance created, loading real flight data...');
-                    
+
                     // Load real flight data
                     await this.loadFlightData();
-                    
+
                     // Prevent drag ghosting by disabling image dragging
                     globeElement.addEventListener('dragstart', (e) => e.preventDefault());
                     globeElement.addEventListener('selectstart', (e) => e.preventDefault());
-                    
+
                     // Force multiple resizes to ensure proper rendering
                     const resizeGlobe = () => {
                         if (globe && globe.renderer && globeElement.clientWidth > 0) {
@@ -334,44 +342,44 @@
                             globe.camera().updateProjectionMatrix();
                         }
                     };
-                    
+
                     setTimeout(resizeGlobe, 100);
                     setTimeout(resizeGlobe, 500);
                     setTimeout(resizeGlobe, 1000);
-                    
+
                     // Add window resize listener
                     window.addEventListener('resize', resizeGlobe);
-                    
+
                     console.log('Globe initialized successfully');
                 } catch (error) {
                     console.error('Error initializing globe:', error);
                     console.error('Error stack:', error.stack);
                 }
             }
-            
+
             async loadFlightData() {
                 try {
                     const [airportsRes, routesRes] = await Promise.all([
                         fetch('https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat'),
                         fetch('https://raw.githubusercontent.com/jpatokal/openflights/master/data/routes.dat')
                     ]);
-                    
-                    const airports = csvParseRows(await airportsRes.text(), 
-                        ([id, name, city, country, iata, icao, lat, lng]) => 
+
+                    const airports = csvParseRows(await airportsRes.text(),
+                        ([id, name, city, country, iata, icao, lat, lng]) =>
                             ({ iata, city, country, lat: +lat, lng: +lng }));
-                    
+
                     const routes = csvParseRows(await routesRes.text(),
-                        ([airline, id, srcIata, srcId, dstIata, dstId, share, stops]) => 
+                        ([airline, id, srcIata, srcId, dstIata, dstId, share, stops]) =>
                             ({ airline, srcIata, dstIata, stops }));
-                    
+
                     const cityIatas = cities.map(c => c.iata);
                     const airportMap = {};
                     airports.filter(a => cityIatas.includes(a.iata)).forEach(a => airportMap[a.iata] = a);
-                    
+
                     const arcs = routes
                         .filter(r => r.stops === '0' && airportMap[r.srcIata] && airportMap[r.dstIata])
                         .map(r => ({ ...r, srcAirport: airportMap[r.srcIata], dstAirport: airportMap[r.dstIata] }));
-                    
+
                     globe.arcsData(arcs);
                     console.log('Loaded', arcs.length, 'flight routes');
                 } catch (error) {
@@ -379,7 +387,7 @@
                     globe.arcsData([]);
                 }
             }
-            
+
             handleCityClick(city) {
                 if (gamePhase === 'nomination') {
                     // Add city to current player's countries
@@ -397,7 +405,7 @@
                     }
                 }
             }
-            
+
             advanceRound() {
                 if (currentRound < totalRounds) {
                     currentRound++;
@@ -409,31 +417,31 @@
                 }
                 this.updateUI();
             }
-            
+
             updateUI() {
                 document.getElementById('player1Count').textContent = playerCountries.player1.length;
                 document.getElementById('player2Count').textContent = playerCountries.player2.length;
                 document.getElementById('player1Countries').textContent = playerCountries.player1.join(', ');
                 document.getElementById('player2Countries').textContent = playerCountries.player2.join(', ');
-                
+
                 // Update game status
                 this.updateGameStatus();
-                
+
                 // Update button styles
                 document.querySelectorAll('header button').forEach(btn => {
                     btn.style.backgroundColor = '#555';
                 });
-                
-                const activeBtn = document.getElementById(gamePhase + 'Btn') || 
-                                 (gamePhase === 'nomination' ? document.querySelector('button[onclick*="nomination"]') : null);
+
+                const activeBtn = document.getElementById(gamePhase + 'Btn') ||
+                    (gamePhase === 'nomination' ? document.querySelector('button[onclick*="nomination"]') : null);
                 if (activeBtn) {
                     activeBtn.style.backgroundColor = '#4CAF50';
                 }
-                
+
                 // Handle gallery visibility and globe blur based on game phase
                 const gallerySection = document.getElementById('gallerySection');
                 const globeSection = document.querySelector('.globe-section');
-                
+
                 if (gamePhase === 'travel') {
                     gallerySection.classList.add('hidden');
                     globeSection.classList.remove('blurred');
@@ -442,24 +450,24 @@
                     globeSection.classList.add('blurred');
                 }
             }
-            
+
             updateGameStatus() {
                 const roundStatus = document.getElementById('roundStatus');
                 const stageStatus = document.getElementById('stageStatus');
-                
+
                 if (gamePhase === 'complete') {
                     roundStatus.textContent = 'Game Complete!';
                     stageStatus.textContent = 'All rounds finished';
                     return;
                 }
-                
+
                 // Update round status
                 roundStatus.textContent = `${currentRound} / ${totalRounds} rounds of nominate, auction`;
-                
+
                 // Update stage status
                 let stageText = '';
                 let nextStage = '';
-                
+
                 if (gamePhase === 'nomination') {
                     stageText = `${currentRound}/3 nomination`;
                     nextStage = 'bidding';
@@ -474,10 +482,10 @@
                         nextStage = 'continue travel';
                     }
                 }
-                
+
                 stageStatus.textContent = `${stageText} - next stage: ${nextStage}`;
             }
-            
+
             async fetchPaintings() {
                 console.log('Fetching paintings...');
                 try {
@@ -492,7 +500,7 @@
                         },
                         {
                             title: "The Great Wave",
-                            author: "Katsushika Hokusai", 
+                            author: "Katsushika Hokusai",
                             year: "1831",
                             type: "Ukiyo-e",
                             region: "east asia",
@@ -503,13 +511,13 @@
                             author: "Leonardo da Vinci",
                             year: "1503",
                             type: "Renaissance",
-                            region: "europe", 
+                            region: "europe",
                             image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg"
                         },
                         {
                             title: "American Gothic",
                             author: "Grant Wood",
-                            year: "1930", 
+                            year: "1930",
                             type: "Regionalism",
                             region: "north america",
                             image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"
@@ -526,7 +534,7 @@
                             title: "The Persistence of Memory",
                             author: "Salvador Dalí",
                             year: "1931",
-                            type: "Surrealism", 
+                            type: "Surrealism",
                             region: "europe",
                             image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg"
                         }
@@ -537,34 +545,34 @@
                     this.paintings = [];
                 }
             }
-            
+
             renderPaintings() {
                 console.log('Rendering paintings...');
                 const container = document.getElementById('paintingsContainer');
-                
+
                 if (!container) {
                     console.error('Paintings container not found!');
                     return;
                 }
-                
+
                 if (this.paintings.length === 0) {
                     console.log('No paintings to render');
                     container.innerHTML = '<div class="error">No paintings found.</div>';
                     return;
                 }
-                
+
                 console.log('Creating grid for', this.paintings.length, 'paintings');
                 const grid = document.createElement('div');
                 grid.className = 'paintings-grid';
-                
+
                 this.paintings.forEach((painting, index) => {
                     console.log('Rendering painting', index + 1, ':', painting.title);
                     const card = document.createElement('div');
                     card.className = 'painting-card';
-                    
+
                     // Add region outline color
                     card.style.borderColor = this.regionColors[painting.region] || '#fff';
-                    
+
                     card.innerHTML = `
                         <div class="painting-title title-font">${painting.title}</div>
                         <div class="painting-author">${painting.author} | ${painting.year}</div>
@@ -572,19 +580,19 @@
                         <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
                              onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
                     `;
-                    
+
                     card.addEventListener('click', () => {
                         this.showPaintingDetails(painting);
                     });
-                    
+
                     grid.appendChild(card);
                 });
-                
+
                 container.innerHTML = '';
                 container.appendChild(grid);
                 console.log('Paintings rendered successfully');
             }
-            
+
             showPaintingDetails(painting) {
                 const modal = document.createElement('div');
                 modal.style.cssText = `
@@ -599,7 +607,7 @@
                     align-items: center;
                     z-index: 1000;
                 `;
-                
+
                 modal.innerHTML = `
                     <div style="background: #000; border: 2px solid ${this.regionColors[painting.region]}; padding: 30px; max-width: 500px; text-align: center;">
                         <h2 class="title-font">${painting.title}</h2>
@@ -610,17 +618,17 @@
                         <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 20px; padding: 10px 20px; background: #fff; color: #000; border: none; cursor: pointer;">Close</button>
                     </div>
                 `;
-                
+
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) {
                         modal.remove();
                     }
                 });
-                
+
                 document.body.appendChild(modal);
             }
         }
-        
+
         // Global functions for button handlers
         function setGamePhase(phase) {
             if (phase === 'travel') {
@@ -631,7 +639,7 @@
                 game.updateUI();
             }
         }
-        
+
         function resetGame() {
             gamePhase = 'nomination';
             currentRound = 1;
@@ -644,13 +652,13 @@
                 game.updateUI();
             }
         }
-        
+
         let game;
-        
+
         // Initialize the game when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM loaded, initializing game...');
-            
+
             // Function to initialize the game
             function initializeGame() {
                 try {
@@ -661,7 +669,7 @@
                     console.error('Error stack:', error.stack);
                 }
             }
-            
+
             // Wait a bit for the DOM to be fully ready
             setTimeout(() => {
                 // Check if Globe is available
@@ -698,4 +706,5 @@
         });
     </script>
 </body>
+
 </html>
