@@ -126,10 +126,12 @@
 
         .painting-image {
             width: 100%;
-            height: 150px;
-            object-fit: cover;
+            height: auto;
+            object-fit: contain;
             border: 1px solid #666;
             margin-bottom: 10px;
+            max-height: 400px;
+            min-height: 120px;
         }
 
         .loading {
@@ -348,6 +350,23 @@
     <script>
         // CUSTOM JAVASCRIPT - CLEARLY SEPARATED FROM ORIGINAL
         // ==================================================
+
+        // AIRTABLE CONFIGURATION
+        // ======================
+        // To use your Airtable data:
+        // 1. Go to https://airtable.com/create/tokens
+        // 2. Create a Personal Access Token with read access to your base
+        // 3. Replace 'YOUR_AIRTABLE_TOKEN_HERE' below with your actual token
+        // 4. Verify the AIRTABLE_BASE_ID and AIRTABLE_TABLE_ID match your table
+
+        const AIRTABLE_CONFIG = {
+            BASE_ID: 'appSi99NbW1qy1xsm',
+            TABLE_ID: 'tblwcIWe5P2z23FQO',
+            TOKEN: 'patb4z3LhPCbWFvOV.d8ae4647cd7202bd3d5962ad22503bdc7e1f4e46f0ef2bf723e7bee04cef4fe3'
+        };
+
+        // Expected Airtable fields: Original name, Short Title, Artist, Year, Region, Photo, Harmony
+        const EXPECTED_FIELDS = ['Original name', 'Short Title', 'Artist', 'Year', 'Region', 'Photo', 'Harmony'];
 
         let gamePhase = 'bidding';
         let currentRound = 1;
@@ -619,63 +638,368 @@
             }
 
             async fetchPaintings() {
-                console.log('Fetching paintings...');
+                console.log('Fetching paintings from Airtable...');
+                console.log('Using config:', AIRTABLE_CONFIG);
+
                 try {
-                    this.paintings = [
-                        {
-                            title: "The Starry Night",
-                            author: "Vincent van Gogh",
-                            year: "1889",
-                            type: "Post-Impressionism",
-                            region: "europe",
-                            image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
-                        },
-                        {
-                            title: "The Great Wave",
-                            author: "Katsushika Hokusai",
-                            year: "1831",
-                            type: "Ukiyo-e",
-                            region: "east asia",
-                            image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/300px-The_Great_Wave_off_Kanagawa.jpg"
-                        },
-                        {
-                            title: "Mona Lisa",
-                            author: "Leonardo da Vinci",
-                            year: "1503",
-                            type: "Renaissance",
-                            region: "europe",
-                            image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg"
-                        },
-                        {
-                            title: "American Gothic",
-                            author: "Grant Wood",
-                            year: "1930",
-                            type: "Regionalism",
-                            region: "north america",
-                            image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"
-                        },
-                        {
-                            title: "Girl with a Pearl Earring",
-                            author: "Johannes Vermeer",
-                            year: "1665",
-                            type: "Baroque",
-                            region: "europe",
-                            image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/300px-1665_Girl_with_a_Pearl_Earring.jpg"
-                        },
-                        {
-                            title: "The Persistence of Memory",
-                            author: "Salvador Dalí",
-                            year: "1931",
-                            type: "Surrealism",
-                            region: "europe",
-                            image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg"
+                    if (!AIRTABLE_CONFIG.TOKEN || AIRTABLE_CONFIG.TOKEN === 'YOUR_AIRTABLE_TOKEN_HERE') {
+                        console.warn('Airtable token not configured, using fallback data');
+                        this.paintings = this.getFallbackPaintings();
+                        return;
+                    }
+
+                    const url = `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_ID}`;
+                    console.log('Fetching from URL:', url);
+
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_CONFIG.TOKEN}`,
+                            'Content-Type': 'application/json'
                         }
-                    ];
-                    console.log('Paintings loaded:', this.paintings.length);
+                    });
+
+                    console.log('Response status:', response.status, response.statusText);
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Airtable API error response:', errorText);
+                        throw new Error(`Airtable API error: ${response.status} ${response.statusText} - ${errorText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('Raw Airtable data:', data);
+                    console.log('Number of records:', data.records?.length || 0);
+
+                    if (!data.records || data.records.length === 0) {
+                        console.warn('No records found in Airtable response');
+                        this.paintings = this.getFallbackPaintings();
+                        return;
+                    }
+
+                    // Log first record to see field structure
+                    console.log('First record fields:', data.records[0]?.fields);
+
+                    // Validate expected fields
+                    this.validateAirtableFields(data.records[0]?.fields);
+
+                    // Transform Airtable records to painting objects
+                    this.paintings = data.records.map(record => {
+                        const fields = record.fields;
+                        console.log('Processing record:', record.id, fields);
+
+                        // Map Airtable fields to your exact specification:
+                        // Original name, Short Title, Artist, Year, Region, Photo, Harmony
+                        const painting = {
+                            id: record.id,
+                            // Use Short Title as primary, fallback to Original name
+                            title: fields['Short Title'] || fields['Original name'] || 'Untitled',
+                            originalName: fields['Original name'] || '',
+                            author: fields['Artist'] || 'Unknown Artist',
+                            year: fields['Year'] ? String(fields['Year']) : 'Unknown',
+                            // Use Harmony for the type/style field
+                            type: fields['Harmony'] || 'Unknown Style',
+                            // Map Region tags to game regions
+                            region: this.mapRegionFromTags(fields['Region']),
+                            // Extract image URL from Photo field
+                            image: this.extractImageUrl(fields['Photo']),
+                            // Store Harmony as description too
+                            description: fields['Harmony'] || '',
+                            harmony: fields['Harmony'] || '',
+                            // Store original region tags for reference
+                            regionTags: fields['Region'] || []
+                        };
+
+                        console.log('Mapped painting:', painting);
+                        return painting;
+                    }).filter(painting => {
+                        // Filter out records that don't have essential data
+                        const hasTitle = painting.title && painting.title !== 'Untitled';
+                        const hasArtist = painting.author && painting.author !== 'Unknown Artist';
+                        return hasTitle || hasArtist; // Keep if has either title or artist
+                    });
+
+                    console.log('Final paintings array:', this.paintings);
+                    console.log('Paintings loaded from Airtable:', this.paintings.length);
+
+                    if (this.paintings.length === 0) {
+                        console.warn('No valid paintings found after filtering, using fallback data');
+                        this.paintings = this.getFallbackPaintings();
+                    }
+
                 } catch (error) {
-                    console.error('Error fetching paintings:', error);
-                    this.paintings = [];
+                    console.error('Error fetching paintings from Airtable:', error);
+                    console.error('Error details:', error.message);
+                    console.error('Error stack:', error.stack);
+                    console.warn('Using fallback data due to Airtable error');
+                    this.paintings = this.getFallbackPaintings();
                 }
+            }
+
+            validateAirtableFields(sampleFields) {
+                if (!sampleFields) {
+                    console.warn('No sample fields to validate');
+                    return;
+                }
+
+                console.log('Validating Airtable fields...');
+                console.log('Expected fields:', EXPECTED_FIELDS);
+                console.log('Available fields:', Object.keys(sampleFields));
+
+                const missingFields = [];
+                const presentFields = [];
+
+                EXPECTED_FIELDS.forEach(field => {
+                    if (sampleFields.hasOwnProperty(field)) {
+                        presentFields.push(field);
+                        console.log(`✓ Found field: "${field}" = ${sampleFields[field]}`);
+                    } else {
+                        missingFields.push(field);
+                        console.warn(`✗ Missing field: "${field}"`);
+                    }
+                });
+
+                if (missingFields.length > 0) {
+                    console.warn('Missing expected fields:', missingFields);
+                    console.log('Available fields that might be alternatives:',
+                        Object.keys(sampleFields).filter(key => !EXPECTED_FIELDS.includes(key)));
+                }
+
+                console.log(`Field validation complete: ${presentFields.length}/${EXPECTED_FIELDS.length} fields found`);
+            }
+
+            getFallbackPaintings() {
+                return [
+                    {
+                        title: "The Starry Night",
+                        author: "Vincent van Gogh",
+                        year: "1889",
+                        type: "Post-Impressionism",
+                        region: "europe",
+                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
+                    },
+                    {
+                        title: "The Great Wave",
+                        author: "Katsushika Hokusai",
+                        year: "1831",
+                        type: "Ukiyo-e",
+                        region: "east asia",
+                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/300px-The_Great_Wave_off_Kanagawa.jpg"
+                    },
+                    {
+                        title: "Mona Lisa",
+                        author: "Leonardo da Vinci",
+                        year: "1503",
+                        type: "Renaissance",
+                        region: "europe",
+                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg"
+                    },
+                    {
+                        title: "American Gothic",
+                        author: "Grant Wood",
+                        year: "1930",
+                        type: "Regionalism",
+                        region: "north america",
+                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"
+                    },
+                    {
+                        title: "Girl with a Pearl Earring",
+                        author: "Johannes Vermeer",
+                        year: "1665",
+                        type: "Baroque",
+                        region: "europe",
+                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/300px-1665_Girl_with_a_Pearl_Earring.jpg"
+                    },
+                    {
+                        title: "The Persistence of Memory",
+                        author: "Salvador Dalí",
+                        year: "1931",
+                        type: "Surrealism",
+                        region: "europe",
+                        image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg"
+                    }
+                ];
+            }
+
+            mapRegionFromTags(regionTags) {
+                if (!regionTags) {
+                    return 'europe'; // default
+                }
+
+                // Handle both array and string formats
+                let tags = [];
+                if (Array.isArray(regionTags)) {
+                    tags = regionTags;
+                } else if (typeof regionTags === 'string') {
+                    tags = [regionTags];
+                } else {
+                    return 'europe'; // default
+                }
+
+                if (tags.length === 0) {
+                    return 'europe'; // default
+                }
+
+                // Map your Airtable region tags to game regions
+                const tagToRegionMap = {
+                    // European Art variations
+                    'European Art': 'europe',
+                    'european art': 'europe',
+                    'europe': 'europe',
+                    'western art': 'europe',
+                    'renaissance': 'europe',
+                    'baroque': 'europe',
+                    'impressionism': 'europe',
+
+                    // South American Art variations
+                    'South American Art': 'south america',
+                    'south american art': 'south america',
+                    'south america': 'south america',
+                    'latin american art': 'south america',
+                    'brazilian art': 'south america',
+                    'mexican art': 'south america',
+
+                    // North American Art variations
+                    'North American Art': 'north america',
+                    'north american art': 'north america',
+                    'north america': 'north america',
+                    'american art': 'north america',
+                    'usa art': 'north america',
+                    'canadian art': 'north america',
+
+                    // East Asian Art variations
+                    'East Asian Art': 'east asia',
+                    'east asian art': 'east asia',
+                    'east asia': 'east asia',
+                    'asian art': 'east asia',
+                    'chinese art': 'east asia',
+                    'japanese art': 'east asia',
+                    'korean art': 'east asia',
+
+                    // South Asian Art variations
+                    'South Asian Art': 'south asia',
+                    'south asian art': 'south asia',
+                    'south asia': 'south asia',
+                    'indian art': 'south asia',
+                    'buddhist art': 'south asia',
+                    'hindu art': 'south asia',
+
+                    // African Art variations
+                    'African Art': 'africa',
+                    'african art': 'africa',
+                    'africa': 'africa',
+                    'egyptian art': 'africa',
+                    'tribal art': 'africa',
+
+                    // Oceanian Art variations
+                    'Oceanian Art': 'oceania',
+                    'oceanian art': 'oceania',
+                    'oceania': 'oceania',
+                    'australian art': 'oceania',
+                    'aboriginal art': 'oceania',
+                    'pacific art': 'oceania'
+                };
+
+                // Check each tag for a match
+                for (const tag of tags) {
+                    if (!tag) continue;
+                    const tagLower = String(tag).toLowerCase().trim();
+                    if (tagToRegionMap[tagLower]) {
+                        console.log(`Mapped region tag "${tag}" to "${tagToRegionMap[tagLower]}"`);
+                        return tagToRegionMap[tagLower];
+                    }
+                }
+
+                console.log(`No region mapping found for tags: ${tags.join(', ')}, using default: europe`);
+                return 'europe'; // default fallback
+            }
+
+            mapLocationToRegion(location) {
+                if (!location) return 'europe'; // default
+
+                const locationLower = location.toLowerCase();
+
+                // Map countries/locations to regions
+                const regionMap = {
+                    // Europe
+                    'france': 'europe', 'italy': 'europe', 'spain': 'europe', 'germany': 'europe',
+                    'netherlands': 'europe', 'belgium': 'europe', 'austria': 'europe', 'switzerland': 'europe',
+                    'uk': 'europe', 'england': 'europe', 'britain': 'europe', 'united kingdom': 'europe',
+                    'russia': 'europe', 'poland': 'europe', 'czech republic': 'europe', 'hungary': 'europe',
+                    'europe': 'europe', 'european': 'europe',
+
+                    // North America
+                    'usa': 'north america', 'united states': 'north america', 'america': 'north america',
+                    'canada': 'north america', 'mexico': 'north america', 'north america': 'north america',
+
+                    // South America
+                    'brazil': 'south america', 'argentina': 'south america', 'chile': 'south america',
+                    'peru': 'south america', 'colombia': 'south america', 'south america': 'south america',
+
+                    // East Asia
+                    'japan': 'east asia', 'china': 'east asia', 'korea': 'east asia', 'south korea': 'east asia',
+                    'north korea': 'east asia', 'taiwan': 'east asia', 'east asia': 'east asia', 'asia': 'east asia',
+
+                    // South Asia
+                    'india': 'south asia', 'pakistan': 'south asia', 'bangladesh': 'south asia',
+                    'sri lanka': 'south asia', 'nepal': 'south asia', 'south asia': 'south asia',
+
+                    // Africa
+                    'egypt': 'africa', 'south africa': 'africa', 'nigeria': 'africa', 'kenya': 'africa',
+                    'morocco': 'africa', 'tunisia': 'africa', 'algeria': 'africa', 'africa': 'africa',
+
+                    // Oceania
+                    'australia': 'oceania', 'new zealand': 'oceania', 'fiji': 'oceania', 'oceania': 'oceania'
+                };
+
+                // Check for direct matches
+                for (const [country, region] of Object.entries(regionMap)) {
+                    if (locationLower.includes(country)) {
+                        return region;
+                    }
+                }
+
+                return 'europe'; // default fallback
+            }
+
+            extractImageUrl(imageField) {
+                if (!imageField) {
+                    console.log('No image field provided');
+                    return null;
+                }
+
+                console.log('Extracting image URL from:', imageField);
+
+                // Handle Airtable attachment field (array of objects)
+                if (Array.isArray(imageField) && imageField.length > 0) {
+                    const attachment = imageField[0];
+                    console.log('Processing attachment:', attachment);
+
+                    // Try different URL properties in order of preference
+                    const url = attachment.url ||
+                        attachment.thumbnails?.large?.url ||
+                        attachment.thumbnails?.full?.url ||
+                        attachment.thumbnails?.small?.url;
+
+                    if (url) {
+                        console.log('Extracted URL from attachment:', url);
+                        return url;
+                    }
+                }
+
+                // Handle direct URL string
+                if (typeof imageField === 'string' && imageField.trim()) {
+                    console.log('Using direct URL string:', imageField);
+                    return imageField.trim();
+                }
+
+                // Handle object with URL property
+                if (imageField && typeof imageField === 'object' && imageField.url) {
+                    console.log('Using URL from object:', imageField.url);
+                    return imageField.url;
+                }
+
+                console.log('Could not extract image URL from field');
+                return null;
             }
 
             initializeBiddingData() {
@@ -746,12 +1070,12 @@
                                     <div class="detail svelte-1pd0inp">${painting.author} | ${painting.year}</div>
                                     <div class="detail svelte-1pd0inp">${painting.type}</div>
                                     <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
-                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: 120px; object-fit: cover; margin: 10px 0;">
+                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: auto; object-fit: contain; margin: 10px 0; max-height: 300px; min-height: 120px;">
                                     <div class="painting-meters svelte-1pd0inp">
-                                        ${Array.from({length: 10}, (_, i) => `
+                                        ${Array.from({ length: 10 }, (_, i) => `
                                             <div class="painting-meter-row svelte-1pd0inp">
                                                 <div class="painting-meter-sections svelte-1pd0inp">
-                                                    ${Array.from({length: 10}, (_, j) => `<div class="painting-meter-section svelte-1pd0inp"></div>`).join('')}
+                                                    ${Array.from({ length: 10 }, (_, j) => `<div class="painting-meter-section svelte-1pd0inp"></div>`).join('')}
                                                 </div>
                                             </div>
                                         `).join('')}
@@ -822,23 +1146,23 @@
 
             handleBidClick(card, paintingIndex) {
                 console.log('Bid clicked for painting', paintingIndex);
-                
+
                 const bidData = this.biddingData[paintingIndex];
                 const colors = ['cyan', 'magenta', 'lime'];
-                
+
                 // Increase bid by 0.5M
                 bidData.currentBid += 0.5;
-                
+
                 // Rotate to next team
                 bidData.currentTeam = (bidData.currentTeam + 1) % 3;
                 const newTeamColor = colors[bidData.currentTeam];
-                
+
                 // Update display
                 const bidDisplay = card.querySelector('.bid-display');
                 const currentBidElement = card.querySelector('.current-bid-amount');
                 const bidButton = card.querySelector('.bid-button');
                 const buttonAmount = bidButton.querySelector('.bid-button-amount');
-                
+
                 // Update colors and amounts - 10% opacity fill with colored border
                 const colorMap = {
                     'cyan': 'rgba(0, 255, 255, 0.1)',
@@ -849,7 +1173,7 @@
                 bidDisplay.style.borderColor = newTeamColor;
                 currentBidElement.textContent = `$${bidData.currentBid.toFixed(1)}M`;
                 buttonAmount.textContent = `$${(bidData.currentBid + 0.5).toFixed(1)}M`;
-                
+
                 // Trigger pop-in animation on the colored box
                 bidDisplay.classList.remove('svelte-1nlw3im');
                 setTimeout(() => {
@@ -860,34 +1184,34 @@
             startBiddingTimer(card, paintingIndex) {
                 const bidData = this.biddingData[paintingIndex];
                 const timerNumber = card.querySelector('.timer-number');
-                
+
                 const timer = setInterval(() => {
                     bidData.timeRemaining -= 0.001;
-                    
+
                     if (bidData.timeRemaining <= 0) {
                         clearInterval(timer);
                         bidData.timeRemaining = 0;
                         this.endBidding(card);
                     }
-                    
+
                     // Update timer display
                     timerNumber.textContent = bidData.timeRemaining.toFixed(3);
                 }, 1);
-                
+
                 // Store timer reference for cleanup
                 card.dataset.timerId = timer;
             }
 
             endBidding(card) {
                 console.log('Bidding ended for painting');
-                
+
                 // Mark as over
                 card.classList.add('over');
                 const script = card.querySelector('.script');
                 if (script) {
                     script.classList.add('over');
                 }
-                
+
                 // Disable bid button
                 const bidButton = card.querySelector('.bid-button');
                 if (bidButton) {
