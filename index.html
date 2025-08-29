@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Style Showcase</title>
+    <!-- Google Fonts for fallbacks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="global.da2a4795 (1).css">
+    <link rel="stylesheet" href="src.3607d8e2 (1).css">
+    <style>
+        .showcase-section {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+
+        .showcase-title {
+            color: #fff;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #666;
+            padding-bottom: 10px;
+        }
+
+        .demo-item {
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .demo-label {
+            color: #ccc;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .flex-demo {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Enhanced pop-in animation showcase */
+        #pop-in-container {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed #444;
+            border-radius: 4px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Fix script component layout */
+        .script.svelte-ezxij8 {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .script.svelte-ezxij8 .stuff.svelte-ezxij8 {
+            margin-left: 5px;
+        }
+
+        /* Better visibility for pop-in elements */
+        .result.svelte-1jz24ml,
+        .bid.svelte-1nlw3im,
+        .result.svelte-1chgsyc {
+            background: rgba(0, 100, 255, 0.2);
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        /* Animation details explanation */
+        .animation-details {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        /* Font Fixes - Override missing fonts with web-safe alternatives */
+        .title-font,
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Orbitron', 'Arial Black', 'Helvetica', sans-serif !important;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        body,
+        p,
+        button,
+        input,
+        select,
+        label {
+            font-family: 'Space Mono', 'Courier New', monospace !important;
+        }
+
+        /* Ensure the showcase title is prominent */
+        .showcase-title {
+            font-family: 'Orbitron', 'Arial Black', sans-serif !important;
+            font-weight: 700;
+        }
+
+        /* Font demonstration section */
+        .font-demo {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .font-sample {
+            font-size: 1.2em;
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title-font text-center">Interactive Style Showcase</h1>
+        <p class="text-center">Explore all the styles and components from your CSS files</p>
+
+        <!-- Typography Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Typography & Fonts</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">⚠️ Font Status & Fallbacks</div>
+                <div class="font-demo">
+                    <p><strong>Original fonts missing:</strong></p>
+                    <ul style="color: #ff6666;">
+                        <li>HerbusBold (Herbus-Bold.f6e76496.otf) - Not found</li>
+                        <li>Monotype (SpaceMono-Regular.5d0cd0a9.ttf) - Not found</li>
+                    </ul>
+                    <p><strong>Using Google Fonts fallbacks:</strong></p>
+                    <ul style="color: #66ff66;">
+                        <li>Orbitron (similar to HerbusBold) - For titles and headings</li>
+                        <li>Space Mono (exact match) - For body text and monospace</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Title Font (HerbusBold → Orbitron Fallback)</div>
+                <div class="font-sample">
+                    <h1 class="title-font">This is the title font with fallback</h1>
+                    <p style="font-size: 0.8em; color: #ccc;">Font-family: 'Orbitron', 'Arial Black', sans-serif</p>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Monotype Font (Space Mono - Exact Match!)</div>
+                <div class="font-sample">
+                    <p>This is the Space Mono font used for body text and regular content.</p>
+                    <p style="font-size: 0.8em; color: #ccc;">Font-family: 'Space Mono', 'Courier New', monospace</p>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Heading Styles with Fallback Fonts</div>
+                <h1>H1 Heading (Orbitron)</h1>
+                <h2>H2 Heading (Orbitron)</h2>
+                <h3>H3 Heading - 3em (Orbitron)</h3>
+                <h4>H4 Heading with Shadow - 2em (Orbitron)</h4>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Font Comparison</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4>Titles & Headings</h4>
+                        <div style="font-family: 'Orbitron', sans-serif; font-size: 1.5em; color: #00ff00;">ORBITRON
+                            FONT</div>
+                        <div style="font-family: Arial, sans-serif; font-size: 1.5em; color: #ff6666;">Arial Fallback
+                        </div>
+                    </div>
+                    <div>
+                        <h4>Body & Monospace</h4>
+                        <div style="font-family: 'Space Mono', monospace; color: #00ff00;">Space Mono Font</div>
+                        <div style="font-family: 'Courier New', monospace; color: #ff6666;">Courier Fallback</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Button Styles Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Button Styles & Interactions</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Basic Buttons</div>
+                <div class="flex-demo">
+                    <button>Default Button</button>
+                    <button class="pulse" style="--color: #00ff00;">Pulsing Button</button>
+                    <button onclick="createFlash(event)">Click for Flash Effect</button>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Styled Buttons from Components</div>
+                <div class="flex-demo">
+                    <button class="svelte-1alm19u">Panel Button</button>
+                    <button class="svelte-1hc0ey2">Large Action Button</button>
+                    <button class="svelte-h298a">Chat Button</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Animation Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Animations & Effects</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Buzz Animations (Continuous shaking effects)</div>
+                <div class="flex-demo">
+                    <div class="buzzing small svelte-v1uyjg"
+                        style="padding: 10px; border: 1px solid #666; margin: 10px;">
+                        <span>Small Buzz</span>
+                        <div class="buzz svelte-v1uyjg">0.2px</div>
+                    </div>
+                    <div class="buzzing medium svelte-v1uyjg"
+                        style="padding: 10px; border: 1px solid #666; margin: 10px;">
+                        <span>Medium Buzz</span>
+                        <div class="buzz svelte-v1uyjg">0.5px</div>
+                    </div>
+                    <div class="buzzing big svelte-v1uyjg" style="padding: 10px; border: 1px solid #666; margin: 10px;">
+                        <span>Big Buzz</span>
+                        <div class="buzz svelte-v1uyjg">1px</div>
+                    </div>
+                </div>
+                <div class="animation-details">
+                    <strong>Buzz Animation Details:</strong><br>
+                    • <code>smallBuzz</code> - 0.2px translate with rotation (-1deg to 1deg)<br>
+                    • <code>mediumBuzz</code> - 0.5px translate with rotation<br>
+                    • <code>bigBuzz</code> - 1px translate with rotation<br>
+                    • Duration: 0.3s infinite loop<br>
+                    • Creates shaking/vibration effect for notifications and alerts
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Flash Effect (Click to trigger)</div>
+                <div id="flash-container" style="position: relative; height: 100px;">
+                    <button onclick="createFlash(event)" style="margin: 20px;">Trigger Flash</button>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Pop-in Animation (Click to trigger)</div>
+                <button onclick="triggerPopIn()" style="margin-bottom: 15px;">Trigger Pop-in Effect</button>
+                <div id="pop-in-container" style="min-height: 50px;">
+                    <!-- Pop-in elements will appear here -->
+                </div>
+                <div class="animation-details">
+                    <strong>Pop-in Animation Details:</strong><br>
+                    • <code>@keyframes svelte-1jz24ml-pop-in</code> - Scales from 0.5 to 1.0 with opacity fade<br>
+                    • <code>@keyframes svelte-1nlw3im-pop-in</code> - Similar scaling effect for bid elements<br>
+                    • Duration: 0.45s with smooth scaling transition<br>
+                    • Used for: Result notifications, bid updates, achievement alerts
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Elements Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Form Elements & Inputs</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Input Styles</div>
+                <div class="flex-demo">
+                    <input type="text" placeholder="Basic Input">
+                    <input type="number" placeholder="Number Input">
+                    <input class="svelte-h298a" type="text" placeholder="Chat Input">
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Select Dropdowns</div>
+                <div class="flex-demo">
+                    <select>
+                        <option>Option 1</option>
+                        <option>Option 2</option>
+                        <option>Option 3</option>
+                    </select>
+                    <select class="svelte-xfvq7v">
+                        <option>Styled Option 1</option>
+                        <option>Styled Option 2</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Radio Buttons</div>
+                <div class="options svelte-8icuzk">
+                    <div class="option svelte-8icuzk">
+                        <input type="radio" id="radio1" name="demo" class="svelte-8icuzk">
+                        <label for="radio1" class="svelte-8icuzk">Option A</label>
+                    </div>
+                    <div class="option svelte-8icuzk">
+                        <input type="radio" id="radio2" name="demo" class="svelte-8icuzk">
+                        <label for="radio2" class="svelte-8icuzk">Option B</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout Components Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Layout Components</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Panel with Toggle</div>
+                <div class="panel svelte-1alm19u" id="demo-panel">
+                    <div class="toggle svelte-1alm19u" onclick="togglePanel()">
+                        <div class="chevron-wrapper svelte-1alm19u">
+                            <div class="chevron left svelte-1alm19u" style="--pixels: 10px; --degrees: 45deg;"></div>
+                            <div class="chevron right svelte-1alm19u" style="--pixels: 10px; --degrees: -45deg;"></div>
+                        </div>
+                    </div>
+                    <div class="buttons-and-settings svelte-1alm19u">
+                        <div class="buttons svelte-1alm19u">
+                            <button class="svelte-1alm19u">Button 1</button>
+                            <button class="svelte-1alm19u">Button 2</button>
+                        </div>
+                        <div class="settings svelte-1alm19u">
+                            <p>Panel content goes here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Card/Script Components</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start;">
+                    <div class="script svelte-ezxij8"
+                        style="position: relative; width: 300px; padding: 15px; margin: 10px;">
+                        <div class="team-and-title svelte-ezxij8">
+                            <div class="team svelte-ezxij8">Team Alpha</div>
+                            <div class="title svelte-ezxij8">Action Hero Script</div>
+                        </div>
+                        <div class="genre svelte-ezxij8">
+                            <span>Action/Adventure</span>
+                        </div>
+                        <div class="profit svelte-ezxij8">$2.5M</div>
+                    </div>
+
+                    <div class="wrapper svelte-1razmuv" style="margin: 10px;">
+                        <div class="team-and-title svelte-1razmuv">
+                            <div class="team svelte-1razmuv">Studio Beta</div>
+                            <div class="title svelte-1razmuv">
+                                <div>Romantic Comedy</div>
+                                <div style="font-size: 0.8em; color: #ccc;">Summer Release</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="script svelte-1hc0ey2" style="width: 280px; margin: 10px; text-align: center;">
+                        <h3 style="margin: 10px 0;">Thriller Script</h3>
+                        <div class="talent svelte-1hc0ey2">
+                            <p>Director: John Smith</p>
+                            <p>Lead Actor: Available</p>
+                        </div>
+                        <button class="svelte-1hc0ey2">View Details</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress & Meters Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Progress Indicators & Meters</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Progress Ring</div>
+                <div class="circle svelte-1gf06yk" style="--degrees: 45deg;">
+                    <svg width="120" height="120">
+                        <circle class="progress-ring__circle svelte-1gf06yk" stroke="white" stroke-width="4"
+                            fill="transparent" r="52" cx="60" cy="60" />
+                    </svg>
+                    <div class="dot svelte-1gf06yk"></div>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Rating Meter</div>
+                <div class="meter svelte-1kxmrnl">
+                    <div class="reliability svelte-1kxmrnl" style="width: 70%; left: 15%;"></div>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Equity Bars</div>
+                <div class="equities svelte-err36p">
+                    <div class="equity svelte-err36p" style="background-color: #ff0000;"></div>
+                    <div class="equity svelte-err36p" style="background-color: #00ff00;"></div>
+                    <div class="equity svelte-err36p" style="background-color: #0000ff;"></div>
+                    <div class="equity svelte-err36p" style="background-color: #ffff00;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Elements Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Interactive Elements</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Selectable Items</div>
+                <div class="item svelte-1vr6bv2" onclick="toggleSelection(this)">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTUiIGZpbGw9IiNjY2MiLz4KPC9zdmc+"
+                        alt="Avatar">
+                    <div class="name-and-genre svelte-1vr6bv2">
+                        <div>Item Name</div>
+                        <div style="font-size: 0.8em; color: #999;">Category</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Chat Interface</div>
+                <div class="row them svelte-h298a">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDUiIGhlaWdodD0iNDUiIHZpZXdCb3g9IjAgMCA0NSA0NSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjIuNSIgY3k9IjIyLjUiIHI9IjIyLjUiIGZpbGw9IiM2NjYiLz4KPC9zdmc+"
+                        alt="User">
+                    <div class="them svelte-h298a">Hello! This is a chat message.</div>
+                </div>
+                <div class="row you svelte-h298a">
+                    <div class="you svelte-h298a">This is your reply message.</div>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Typing Indicator</div>
+                <div class="typing svelte-1gwczwk"></div>
+            </div>
+        </div>
+
+        <!-- Utility Classes Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Utility Classes</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Text Alignment</div>
+                <div class="text-center">Centered Text</div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Display Classes</div>
+                <div class="inline-block">Inline Block 1</div>
+                <div class="inline-block">Inline Block 2</div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Image Effects</div>
+                <div class="flex-demo">
+                    <div class="wrap svelte-17yvi75">
+                        <img class="svelte-17yvi75"
+                            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE3IiBoZWlnaHQ9IjE3IiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPg=="
+                            alt="Icon">
+                        <span>Normal Icon</span>
+                    </div>
+                    <div class="wrap svelte-17yvi75">
+                        <img class="svelte-17yvi75 invert svelte-17yvi75"
+                            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE3IiBoZWlnaHQ9IjE3IiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPg=="
+                            alt="Icon">
+                        <span>Inverted Icon</span>
+                    </div>
+                    <div class="wrap svelte-17yvi75">
+                        <img class="svelte-17yvi75 glow svelte-17yvi75" style="--color: #00ff00;"
+                            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE3IiBoZWlnaHQ9IjE3IiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPg=="
+                            alt="Icon">
+                        <span>Glowing Icon</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Special Effects Section -->
+        <div class="showcase-section">
+            <h2 class="showcase-title">Special Effects</h2>
+
+            <div class="demo-item">
+                <div class="demo-label">Camera Flash Effect</div>
+                <button onclick="createCameraFlash()" style="margin: 20px;">Trigger Camera Flash</button>
+                <div id="camera-flash-container" style="position: relative; height: 100px;"></div>
+            </div>
+
+            <div class="demo-item">
+                <div class="demo-label">Notification Badge & Value Changes</div>
+                <div class="wrapper svelte-v1uyjg" id="notification-demo">
+                    <span>Stock Price: $100</span>
+                    <div class="buzz svelte-v1uyjg">New!</div>
+                </div>
+                <button onclick="simulateValueChange()" style="margin-top: 10px;">Simulate Price Change</button>
+                <div class="animation-details">
+                    <strong>Value Change Animations:</strong><br>
+                    • <code>increase</code> - Slides up 25px with fade out over 4s<br>
+                    • <code>decrease</code> - Slides down 25px with fade out over 4s<br>
+                    • Used for: Stock prices, score changes, revenue updates
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="src.1859388c (1).js"></script>
+    <script>
+        // Flash effect function
+        function createFlash(event) {
+            const container = event.target.parentElement;
+            const flash = document.createElement('div');
+            flash.className = 'flash';
+            flash.style.left = (event.clientX - container.offsetLeft - 100) + 'px';
+            flash.style.top = (event.clientY - container.offsetTop - 100) + 'px';
+            container.appendChild(flash);
+
+            setTimeout(() => {
+                if (flash.parentNode) {
+                    flash.parentNode.removeChild(flash);
+                }
+            }, 200);
+        }
+
+        // Camera flash effect
+        function createCameraFlash() {
+            const container = document.getElementById('camera-flash-container');
+            const flash = document.createElement('div');
+            flash.className = 'camera-flash svelte-1xx0gbf';
+            flash.style.setProperty('--x-pos', '50%');
+            flash.style.setProperty('--y-pos', '50%');
+            flash.innerHTML = `
+                <div class="source-spread svelte-1xx0gbf"></div>
+                <div class="source svelte-1xx0gbf"></div>
+                <div class="source-beam svelte-1xx0gbf"></div>
+                <div class="source-beam vertical svelte-1xx0gbf"></div>
+            `;
+            container.appendChild(flash);
+
+            setTimeout(() => {
+                if (flash.parentNode) {
+                    flash.parentNode.removeChild(flash);
+                }
+            }, 1500);
+        }
+
+        // Panel toggle function
+        function togglePanel() {
+            const panel = document.getElementById('demo-panel');
+            panel.classList.toggle('hide');
+        }
+
+        // Selection toggle function
+        function toggleSelection(element) {
+            element.classList.toggle('selected');
+        }
+
+        // Pop-in animation function
+        function triggerPopIn() {
+            const container = document.getElementById('pop-in-container');
+
+            // Clear existing elements
+            container.innerHTML = '';
+
+            // Create different types of pop-in elements
+            const elements = [
+                { class: 'result svelte-1jz24ml', text: 'Success! Operation completed', delay: 0 },
+                { class: 'bid svelte-1nlw3im', text: 'New bid: $50,000', delay: 200 },
+                { class: 'result svelte-1chgsyc', text: 'Achievement unlocked!', delay: 400 }
+            ];
+
+            elements.forEach((elem, index) => {
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.className = elem.class;
+                    div.textContent = elem.text;
+                    div.style.margin = '10px 0';
+                    div.style.display = 'inline-block';
+                    div.style.marginRight = '10px';
+                    container.appendChild(div);
+                }, elem.delay);
+            });
+        }
+
+        // Value change animation simulation
+        function simulateValueChange() {
+            const demo = document.getElementById('notification-demo');
+            const isIncrease = Math.random() > 0.5;
+            const newPrice = Math.floor(Math.random() * 50) + 75; // Random price between 75-125
+
+            // Create change indicator
+            const changeDiv = document.createElement('div');
+            changeDiv.className = `wrapper svelte-v1uyjg ${isIncrease ? 'increase' : 'decrease'} svelte-v1uyjg`;
+            changeDiv.style.position = 'absolute';
+            changeDiv.style.color = isIncrease ? '#00ff00' : '#ff0000';
+            changeDiv.textContent = `${isIncrease ? '+' : '-'}$${Math.abs(100 - newPrice)}`;
+
+            demo.style.position = 'relative';
+            demo.appendChild(changeDiv);
+
+            // Update the price
+            demo.querySelector('span').textContent = `Stock Price: $${newPrice}`;
+
+            // Remove the change indicator after animation
+            setTimeout(() => {
+                if (changeDiv.parentNode) {
+                    changeDiv.parentNode.removeChild(changeDiv);
+                }
+            }, 4000);
+        }
+
+        // Add some interactive behaviors
+        document.addEventListener('DOMContentLoaded', function () {
+            // Add pulse effect to buttons on hover
+            const buttons = document.querySelectorAll('button:not(.pulse)');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', function () {
+                    this.style.setProperty('--color', '#ffffff');
+                });
+            });
+
+            // Animate progress ring
+            const progressRing = document.querySelector('.progress-ring__circle');
+            if (progressRing) {
+                const radius = progressRing.r.baseVal.value;
+                const circumference = radius * 2 * Math.PI;
+                progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+                progressRing.style.strokeDashoffset = circumference * 0.25; // 75% progress
+            }
+
+            // Add click handlers for interactive demos
+            console.log('Interactive Style Showcase loaded successfully!');
+        });
+    </script>
+</body>
+
+</html>

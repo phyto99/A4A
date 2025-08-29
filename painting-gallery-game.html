@@ -49,8 +49,10 @@
         .left.svelte-1pd0inp { margin-top: 0; padding: 0; width: 100%; }
         .painting-meters.svelte-1pd0inp.svelte-1pd0inp { overflow: visible !important; padding-top: 6px !important; padding-bottom: 6px !important; }
         .painting-meter-section.city-section { display: flex !important; align-items: center !important; justify-content: center !important; font-size: 0 !important; transform: scaleY(1.75) !important; z-index: 10 !important; position: relative !important; }
-        .painting-meter-section.city-section::after { content: attr(data-city) !important; font-size: 10px !important; font-weight: bold !important; color: white !important; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important; transform: scaleY(0.571) !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+        .painting-meter-section.city-section::after { content: attr(data-city) !important; font-size: 10px !important; font-weight: bold !important; color: white !important; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important; transform: scaleY(0.571) !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 25 !important; position: relative !important; }
         .painting-meter-section.after-city { background: rgba(25, 25, 25, 0.9) !important; }
+        .painting-meter-sections { position: relative !important; }
+        .painting-reliability-overlay { mix-blend-mode: normal !important; }
         .painting-image { margin-bottom: 5px !important; }
     </style>
 </head>
@@ -555,18 +557,54 @@
                         position = index % 10;
                     }
 
+                    // Calculate painting reliability - extends from city center to specific block boundaries
+                    // This creates a white gradient overlay that starts at the center of the city block and extends
+                    // bidirectionally to block boundaries (0.5, 1.5, 2.5, 3.5, etc.) without crossing min/max values
+                    const minValue = 0;
+                    const maxValue = 9;
+                    const cityValue = position;
+                    const cityCenterValue = cityValue + 0.5; // Center of the city block
+                    
+                    // Calculate how many full blocks we can extend in each direction
+                    const maxBlocksLeft = Math.floor(cityCenterValue - minValue);
+                    const maxBlocksRight = Math.floor((maxValue + 1) - cityCenterValue);
+                    const maxBlocks = Math.min(maxBlocksLeft, maxBlocksRight); // No artificial cap
+                    
+                    // Minimum reliability is 0.5 (covers the full city block)
+                    // Then randomly extend to 1.5, 2.5, 3.5, etc. (to block boundaries)
+                    const minReliability = 0.5;
+                    const additionalBlocks = Math.floor(Math.random() * maxBlocks); // 0, 1, 2, or 3 additional blocks
+                    const reliability = minReliability + additionalBlocks; // 0.5, 1.5, 2.5, or 3.5
+                    
+                    const reliabilityStartPos = Math.max(minValue, cityCenterValue - reliability);
+                    const reliabilityEndPos = Math.min(maxValue + 1, cityCenterValue + reliability);
+
                     return `
                         <div class="painting-meter-row svelte-1pd0inp">
                             <div class="painting-meter-sections svelte-1pd0inp">
                                 ${Array.from({ length: 10 }, (_, j) => {
+                                    let sectionClass = 'painting-meter-section svelte-1pd0inp';
+                                    let sectionContent = '';
+                                    
                                     if (j === position) {
-                                        return `<div class="painting-meter-section svelte-1pd0inp city-section" data-city="${cityForThisRow.toUpperCase()}">${cityForThisRow.toUpperCase()}</div>`;
+                                        sectionClass += ' city-section';
+                                        sectionContent = cityForThisRow.toUpperCase();
                                     } else if (j > position) {
-                                        return `<div class="painting-meter-section svelte-1pd0inp after-city"></div>`;
-                                    } else {
-                                        return `<div class="painting-meter-section svelte-1pd0inp"></div>`;
+                                        sectionClass += ' after-city';
                                     }
+                                    
+                                    return `<div class="${sectionClass}" data-city="${cityForThisRow.toUpperCase()}">${sectionContent}</div>`;
                                 }).join('')}
+                                <div class="painting-reliability-overlay" style="
+                                    position: absolute;
+                                    top: 0;
+                                    left: ${reliabilityStartPos * 10}%;
+                                    width: ${(reliabilityEndPos - reliabilityStartPos) * 10}%;
+                                    height: 100%;
+                                    background: linear-gradient(90deg, transparent 1%, rgba(255,255,255,0.4) 25%, rgba(255,255,255,0.4) 75%, transparent 99%);
+                                    pointer-events: none;
+                                    z-index: 15;
+                                "></div>
                             </div>
                         </div>
                     `;
