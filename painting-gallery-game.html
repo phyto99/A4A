@@ -265,6 +265,9 @@
         /* Adjust script padding to make room for button */
         .script.svelte-1pd0inp.svelte-1pd0inp {
             padding-bottom: 200px;
+            /* Override the white border from external CSS - only show bottom border */
+            border: none !important;
+            border-bottom: .75px solid #fff !important;
         }
 
         /* Remove padding from container and make it snap to edges */
@@ -276,6 +279,52 @@
             margin-top: 0;
             padding: 0;
             width: 100%;
+        }
+
+        /* Reset everything back to original and use transform for city sections only */
+        .painting-meters.svelte-1pd0inp.svelte-1pd0inp {
+            overflow: visible !important;
+            /* Allow city sections to extend beyond row bounds */
+            padding-top: 6px !important;
+            /* Small padding to prevent cutoff */
+            padding-bottom: 6px !important;
+        }
+
+        /* Custom styling for city sections - 1.75x taller using transform */
+        .painting-meter-section.city-section {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0 !important;
+            /* Hide the stretched text */
+            transform: scaleY(1.75) !important;
+            z-index: 10 !important;
+            position: relative !important;
+        }
+
+        /* Add unstretched text using pseudo-element */
+        .painting-meter-section.city-section::after {
+            content: attr(data-city) !important;
+            font-size: 10px !important;
+            font-weight: bold !important;
+            color: white !important;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+            transform: scaleY(0.571) !important;
+            /* Counter the parent's scaleY(1.75) */
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Style for boxes that come after the city box - darker than card background */
+        .painting-meter-section.after-city {
+            background: rgba(25, 25, 25, 0.9) !important;
+            /* Darker grey than card background */
+        }
+
+        /* Ensure painting image doesn't overlap with meters */
+        .painting-image {
+            margin-bottom: 5px !important;
         }
     </style>
 </head>
@@ -1058,7 +1107,7 @@
                     const card = document.createElement('div');
                     card.className = 'painting-card';
 
-                    // Add region outline color
+                    // Add region color to full border
                     card.style.borderColor = this.regionColors[painting.region] || '#fff';
 
                     if (gamePhase === 'bidding') {
@@ -1072,13 +1121,74 @@
                                     <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
                                          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: auto; object-fit: contain; margin: 10px 0; max-height: 300px; min-height: 120px;">
                                     <div class="painting-meters svelte-1pd0inp">
-                                        ${Array.from({ length: 10 }, (_, i) => `
-                                            <div class="painting-meter-row svelte-1pd0inp">
-                                                <div class="painting-meter-sections svelte-1pd0inp">
-                                                    ${Array.from({ length: 10 }, (_, j) => `<div class="painting-meter-section svelte-1pd0inp"></div>`).join('')}
-                                                </div>
-                                            </div>
-                                        `).join('')}
+                                        ${(() => {
+                                // City mapping with offsets for each harmony color (all array-based)
+                                // Array order: ['cai', 'cpt', 'dxb', 'jak', 'lag', 'ldn', 'mxc', 'mum', 'nyc', 'sao', 'syd', 'tyo']
+                                const cityOffsets = {
+                                    'darkred': [0, 3, 0, 4, 0, 2, 1, 1, 3, 4, 2, 3],
+                                    'red': [0, 2, 0, 2, 2, 2, 2, 2, 4, 4, 1, 4],
+                                    'cyan': [0, 2, 0, 1, 1, 4, 1, 1, 4, 1, 1, 3],
+                                    'orange': [0, 4, 3, 2, 2, 2, 0, 4, 4, 0, 2, 3],
+                                    'yellow': [1, 4, 0, 2, 4, 2, 2, 1, 3, 1, 0, 2],
+                                    'blue': [1, 3, 0, 2, 1, 3, 4, 1, 4, 2, 1, 4],
+                                    'lime': [0, 4, 1, 4, 3, 2, 1, 2, 3, 1, 4, 3],
+                                    'magenta': [5, 1, 5, 2, 0, 3, 3, 2, 2, 0, 2, 1]
+                                };
+
+                                const cities = ['cai', 'cpt', 'dxb', 'jak', 'lag', 'ldn', 'mxc', 'mum', 'nyc', 'sao', 'syd', 'tyo'];
+                                // Use the region color (outline color) to determine city positioning
+                                const regionColor = this.regionColors[painting.region] || 'blue';
+                                const harmonyColor = regionColor;
+
+
+                                return Array.from({ length: 12 }, (_, i) => {
+                                    if (i >= cities.length) return ''; // Skip if more rows than cities
+
+                                    const cityForThisRow = cities[i];
+                                    let position;
+
+                                    // Calculate position based on harmony (all colors now array-based)
+                                    if (cityOffsets[harmonyColor] && Array.isArray(cityOffsets[harmonyColor])) {
+                                        // Get the offset for this city from the array
+                                        const offset = cityOffsets[harmonyColor][i] || 0;
+
+                                        // For most colors, calculate base + offset
+                                        if (harmonyColor === 'magenta') {
+                                            // Magenta is special case - use direct positions (can have 5)
+                                            position = offset;
+                                        } else {
+                                            // For other colors, use base number + offset to ensure proper randomization
+                                            // Max offset is 4 for most colors, so base must be 0-5 to stay within 0-9
+                                            const baseNumber = index % 6; // Use 0-5 as base range
+                                            position = baseNumber + offset;
+                                        }
+
+
+
+                                        // Ensure position stays within bounds (0-9)
+                                        position = Math.max(0, Math.min(9, position));
+                                    } else {
+                                        // Fallback for unknown harmony colors
+                                        position = index % 10;
+                                    }
+
+                                    return `
+                                                    <div class="painting-meter-row svelte-1pd0inp">
+                                                        <div class="painting-meter-sections svelte-1pd0inp">
+                                                            ${Array.from({ length: 10 }, (_, j) => {
+                                        if (j === position) {
+                                            return `<div class="painting-meter-section svelte-1pd0inp city-section" data-city="${cityForThisRow.toUpperCase()}">${cityForThisRow.toUpperCase()}</div>`;
+                                        } else if (j > position) {
+                                            return `<div class="painting-meter-section svelte-1pd0inp after-city"></div>`;
+                                        } else {
+                                            return `<div class="painting-meter-section svelte-1pd0inp"></div>`;
+                                        }
+                                    }).join('')}
+                                                        </div>
+                                                    </div>
+                                                `;
+                                }).filter(row => row !== '').join('');
+                            })()}
                                     </div>
                                 </div>
                             </div>
@@ -1171,8 +1281,8 @@
                 };
                 bidDisplay.style.backgroundColor = colorMap[newTeamColor];
                 bidDisplay.style.borderColor = newTeamColor;
-                currentBidElement.textContent = `$${bidData.currentBid.toFixed(1)}M`;
-                buttonAmount.textContent = `$${(bidData.currentBid + 0.5).toFixed(1)}M`;
+                currentBidElement.textContent = `${bidData.currentBid.toFixed(1)}M`;
+                buttonAmount.textContent = `${(bidData.currentBid + 0.5).toFixed(1)}M`;
 
                 // Trigger pop-in animation on the colored box
                 bidDisplay.classList.remove('svelte-1nlw3im');
@@ -1263,22 +1373,19 @@
                 travelCount = 0; // Reset travel count when entering travel phase
             }
             gamePhase = phase;
-            if (game) {
-                game.updateUI();
-                game.renderPaintings(); // Re-render paintings when phase changes
+            if (window.game) {
+                window.game.updateUI();
+                window.game.renderPaintings(); // Re-render paintings when phase changes
             }
         }
 
         function resetGame() {
-            gamePhase = 'nomination';
             currentRound = 1;
             travelCount = 0;
-            playerCountries = {
-                player1: [],
-                player2: []
-            };
-            if (game) {
-                game.updateUI();
+            playerCountries = { player1: [], player2: [] };
+            gamePhase = 'nomination';
+            if (window.game) {
+                window.game.updateUI();
             }
         }
 
@@ -1292,7 +1399,8 @@
             function initializeGame() {
                 try {
                     console.log('Starting game initialization...');
-                    game = new ArtGalleryGame();
+                    window.game = new ArtGalleryGame();
+                    game = window.game;
                 } catch (error) {
                     console.error('Error initializing game:', error);
                     console.error('Error stack:', error.stack);
