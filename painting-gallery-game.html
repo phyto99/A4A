@@ -1,379 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Art Gallery Explorer</title>
-
-    <!-- Link to existing Svelte CSS files -->
     <link rel="stylesheet" href="global.da2a4795 (1).css">
     <link rel="stylesheet" href="src.3607d8e2 (1).css">
-
-    <!-- Globe.gl -->
     <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
-
     <style>
-        /* CUSTOM STYLES - CLEARLY SEPARATED FROM ORIGINAL */
-        /* ================================================ */
-
-        body {
-            margin: 0;
-        }
-
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            position: relative;
-        }
-
-        .globe-section {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 1;
-            transition: filter 0.3s ease, opacity 0.3s ease;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            pointer-events: auto;
-        }
-
-        .globe-section.blurred {
-            filter: blur(8px) brightness(0.3);
-        }
-
-        #globeViz {
-            width: 100%;
-            height: 100%;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            user-drag: none;
-        }
-
-        .content-overlay {
-            position: relative;
-            z-index: 2;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            pointer-events: none;
-        }
-
-        .content-overlay>* {
-            pointer-events: auto;
-        }
-
-        .gallery-section {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.8);
-            border-top: 2px solid #fff;
-            overflow-y: auto;
-            padding: 20px;
-            transition: opacity 0.3s ease;
-        }
-
-        .gallery-section.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .paintings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-        }
-
-        .painting-card {
-            border: 2px solid #fff;
-            padding: 15px;
-            background: rgba(17, 17, 17, 0.9);
-            transition: all 0.3s ease;
-        }
-
-        .painting-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
-        }
-
-        .painting-title {
-            font-size: 1.2em;
-            margin-bottom: 5px;
-        }
-
-        .painting-author {
-            font-size: 0.9em;
-            color: #ccc;
-            margin-bottom: 5px;
-        }
-
-        .painting-type {
-            font-size: 0.8em;
-            color: #999;
-            margin-bottom: 10px;
-        }
-
-        .painting-image {
-            width: 100%;
-            height: auto;
-            object-fit: contain;
-            border: 1px solid #666;
-            margin-bottom: 10px;
-            max-height: 400px;
-            min-height: 120px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 50px;
-            font-size: 1.5em;
-        }
-
-        .error {
-            color: #ff4757;
-            text-align: center;
-            padding: 20px;
-        }
-
-        /* Bidding System Integration */
-        .painting-card.wrapper.svelte-1pd0inp {
-            border: 2px solid #fff;
-            padding: 0;
-            background: rgba(17, 17, 17, 0.9);
-            transition: all 0.3s ease;
-            min-height: 400px;
-            position: relative;
-        }
-
-        .painting-card.wrapper.svelte-1pd0inp.over {
-            border-color: grey;
-            color: grey;
-        }
-
-        .painting-card.wrapper.svelte-1pd0inp:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
-        }
-
-        /* Redesigned bidding system styling */
-        .bids.svelte-1pd0inp {
-            padding: 0 !important;
-            margin: 0;
-            width: 100%;
-            position: relative;
-        }
-
-        .bid-button {
-            background: #000;
-            color: #fff;
-            border: 2px solid #fff;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-size: 0.8em;
-            text-align: center;
-            min-width: 60px;
-            border-radius: 0;
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-        }
-
-        .bid-button:hover {
-            background: #fff;
-            color: #000;
-            transform: translateX(-50%) scale(1.05);
-        }
-
-        .bid-button-text {
-            font-weight: bold;
-            margin-bottom: 2px;
-        }
-
-        .bid-button-amount {
-            font-size: 0.9em;
-        }
-
-        .bid-display.svelte-1nlw3im {
-            width: 100%;
-            padding: 10px 15px;
-            margin: 0;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            min-height: 60px;
-            transition: all 0.3s ease;
-            animation: svelte-1nlw3im-pop-in 0.45s;
-        }
-
-        .bid-display:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .timer-section {
-            text-align: left;
-        }
-
-        .timer-number {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #fff;
-            line-height: 1;
-            opacity: 1;
-        }
-
-        .timer-text {
-            font-size: 0.7em;
-            color: #fff;
-            margin-top: 2px;
-            opacity: 1;
-        }
-
-        .bid-info {
-            text-align: center;
-            flex-grow: 1;
-        }
-
-        .current-bid-label {
-            font-size: 0.9em;
-            color: #fff;
-            margin-bottom: 2px;
-            opacity: 1;
-        }
-
-        .current-bid-amount {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #fff;
-            opacity: 1;
-        }
-
-        /* Adjust script padding to make room for button */
-        .script.svelte-1pd0inp.svelte-1pd0inp {
-            padding-bottom: 200px;
-            /* Override the white border from external CSS - only show bottom border */
-            border: none !important;
-            border-bottom: .75px solid #fff !important;
-        }
-
-        /* Remove padding from container and make it snap to edges */
-        .center.svelte-1pd0inp {
-            margin-bottom: 0;
-        }
-
-        .left.svelte-1pd0inp {
-            margin-top: 0;
-            padding: 0;
-            width: 100%;
-        }
-
-        /* Reset everything back to original and use transform for city sections only */
-        .painting-meters.svelte-1pd0inp.svelte-1pd0inp {
-            overflow: visible !important;
-            /* Allow city sections to extend beyond row bounds */
-            padding-top: 6px !important;
-            /* Small padding to prevent cutoff */
-            padding-bottom: 6px !important;
-        }
-
-        /* Custom styling for city sections - 1.75x taller using transform */
-        .painting-meter-section.city-section {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 0 !important;
-            /* Hide the stretched text */
-            transform: scaleY(1.75) !important;
-            z-index: 10 !important;
-            position: relative !important;
-        }
-
-        /* Add unstretched text using pseudo-element */
-        .painting-meter-section.city-section::after {
-            content: attr(data-city) !important;
-            font-size: 10px !important;
-            font-weight: bold !important;
-            color: white !important;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
-            transform: scaleY(0.571) !important;
-            /* Counter the parent's scaleY(1.75) */
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-
-        /* Style for boxes that come after the city box - darker than card background */
-        .painting-meter-section.after-city {
-            background: rgba(25, 25, 25, 0.9) !important;
-            /* Darker grey than card background */
-        }
-
-        /* Ensure painting image doesn't overlap with meters */
-        .painting-image {
-            margin-bottom: 5px !important;
-        }
+        body { margin: 0; }
+        .game-container { display: flex; flex-direction: column; height: 100vh; position: relative; }
+        .globe-section { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1; transition: filter 0.3s ease, opacity 0.3s ease; user-select: none; pointer-events: auto; }
+        .globe-section.blurred { filter: blur(8px) brightness(0.3); }
+        #globeViz { width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; user-drag: none; }
+        .content-overlay { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; pointer-events: none; }
+        .content-overlay>* { pointer-events: auto; }
+        .gallery-section { flex: 1; background: rgba(0, 0, 0, 0.8); border-top: 2px solid #fff; overflow-y: auto; padding: 20px; transition: opacity 0.3s ease; }
+        .gallery-section.hidden { opacity: 0; pointer-events: none; }
+        .paintings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .painting-card { border: 2px solid #fff; padding: 15px; background: rgba(17, 17, 17, 0.9); transition: all 0.3s ease; }
+        .painting-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
+        .painting-title { font-size: 1.2em; margin-bottom: 5px; }
+        .painting-author { font-size: 0.9em; color: #ccc; margin-bottom: 5px; }
+        .painting-type { font-size: 0.8em; color: #999; margin-bottom: 10px; }
+        .painting-image { width: 100%; height: auto; object-fit: contain; border: 1px solid #666; margin-bottom: 10px; max-height: 400px; min-height: 120px; }
+        .loading { text-align: center; padding: 50px; font-size: 1.5em; }
+        .error { color: #ff4757; text-align: center; padding: 20px; }
+        
+        /* Bidding System */
+        .painting-card.wrapper.svelte-1pd0inp { border: 2px solid #fff; padding: 0; background: rgba(17, 17, 17, 0.9); transition: all 0.3s ease; min-height: 400px; position: relative; }
+        .painting-card.wrapper.svelte-1pd0inp.over { border-color: grey; color: grey; }
+        .painting-card.wrapper.svelte-1pd0inp:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
+        .bids.svelte-1pd0inp { padding: 0 !important; margin: 0; width: 100%; position: relative; }
+        .bid-button { background: #000; color: #fff; border: 2px solid #fff; padding: 6px 12px; cursor: pointer; font-size: 0.8em; text-align: center; min-width: 60px; border-radius: 0; position: absolute; top: -25px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        .bid-button:hover { background: #fff; color: #000; transform: translateX(-50%) scale(1.05); }
+        .bid-button-text { font-weight: bold; margin-bottom: 2px; }
+        .bid-button-amount { font-size: 0.9em; }
+        .bid-display.svelte-1nlw3im { width: 100%; padding: 10px 15px; margin: 0; position: relative; display: flex; justify-content: space-between; align-items: center; min-height: 60px; transition: all 0.3s ease; animation: svelte-1nlw3im-pop-in 0.45s; }
+        .bid-display:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); }
+        .timer-section { text-align: left; }
+        .timer-number { font-size: 1.8em; font-weight: bold; color: #fff; line-height: 1; opacity: 1; }
+        .timer-text { font-size: 0.7em; color: #fff; margin-top: 2px; opacity: 1; }
+        .bid-info { text-align: center; flex-grow: 1; }
+        .current-bid-label { font-size: 0.9em; color: #fff; margin-bottom: 2px; opacity: 1; }
+        .current-bid-amount { font-size: 1.3em; font-weight: bold; color: #fff; opacity: 1; }
+        .script.svelte-1pd0inp.svelte-1pd0inp { padding-bottom: 200px; border: none !important; border-bottom: .75px solid #fff !important; }
+        .center.svelte-1pd0inp { margin-bottom: 0; }
+        .left.svelte-1pd0inp { margin-top: 0; padding: 0; width: 100%; }
+        .painting-meters.svelte-1pd0inp.svelte-1pd0inp { overflow: visible !important; padding-top: 6px !important; padding-bottom: 6px !important; }
+        .painting-meter-section.city-section { display: flex !important; align-items: center !important; justify-content: center !important; font-size: 0 !important; transform: scaleY(1.75) !important; z-index: 10 !important; position: relative !important; }
+        .painting-meter-section.city-section::after { content: attr(data-city) !important; font-size: 10px !important; font-weight: bold !important; color: white !important; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important; transform: scaleY(0.571) !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+        .painting-meter-section.after-city { background: rgba(25, 25, 25, 0.9) !important; }
+        .painting-image { margin-bottom: 5px !important; }
     </style>
 </head>
-
 <body>
     <div class="game-container">
-        <!-- Globe Section (Background) -->
         <div class="globe-section">
             <div id="globeViz"></div>
         </div>
-
-        <!-- Content Overlay -->
         <div class="content-overlay">
-            <!-- Header with Game Controls -->
             <header style="padding: 10px; background-color: rgba(40, 44, 52, 0.9); color: white; font-size: 12px;">
-                <div
-                    style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <div>
                             <h3 style="margin: 0 0 5px 0; font-size: 14px;">Game Controls</h3>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button onclick="setGamePhase('nomination')"
-                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
-                                    id="nominationBtn">Nomination</button>
-                                <button onclick="setGamePhase('bidding')"
-                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
-                                    id="biddingBtn">Bidding Phase</button>
-                                <button onclick="setGamePhase('travel')"
-                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
-                                    id="travelBtn">Travel</button>
-                                <button onclick="resetGame()"
-                                    style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset
-                                    Game</button>
+                                <button onclick="setGamePhase('nomination')" style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" id="nominationBtn">Nomination</button>
+                                <button onclick="setGamePhase('bidding')" style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" id="biddingBtn">Bidding Phase</button>
+                                <button onclick="setGamePhase('travel')" style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" id="travelBtn">Travel</button>
+                                <button onclick="resetGame()" style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset Game</button>
                             </div>
                         </div>
                         <div>
                             <h3 style="margin: 0 0 5px 0; font-size: 14px;">Player Status</h3>
                             <div style="display: flex; gap: 15px; font-size: 11px;">
-                                <div>
-                                    <strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span>
-                                    countries
-                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries">
-                                    </div>
+                                <div><strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span> countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries"></div>
                                 </div>
-                                <div>
-                                    <strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span>
-                                    countries
-                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries">
-                                    </div>
+                                <div><strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span> countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries"></div>
                                 </div>
                             </div>
                         </div>
@@ -386,8 +92,6 @@
                     </div>
                 </div>
             </header>
-
-            <!-- Gallery Section -->
             <div class="gallery-section" id="gallerySection">
                 <div id="paintingsContainer">
                     <div class="loading">Loading paintings...</div>
@@ -397,38 +101,18 @@
     </div>
 
     <script>
-        // CUSTOM JAVASCRIPT - CLEARLY SEPARATED FROM ORIGINAL
-        // ==================================================
-
-        // AIRTABLE CONFIGURATION
-        // ======================
-        // To use your Airtable data:
-        // 1. Go to https://airtable.com/create/tokens
-        // 2. Create a Personal Access Token with read access to your base
-        // 3. Replace 'YOUR_AIRTABLE_TOKEN_HERE' below with your actual token
-        // 4. Verify the AIRTABLE_BASE_ID and AIRTABLE_TABLE_ID match your table
-
         const AIRTABLE_CONFIG = {
             BASE_ID: 'appSi99NbW1qy1xsm',
             TABLE_ID: 'tblwcIWe5P2z23FQO',
             TOKEN: 'patb4z3LhPCbWFvOV.d8ae4647cd7202bd3d5962ad22503bdc7e1f4e46f0ef2bf723e7bee04cef4fe3'
         };
 
-        // Expected Airtable fields: Original name, Short Title, Artist, Year, Region, Photo, Harmony
         const EXPECTED_FIELDS = ['Original name', 'Short Title', 'Artist', 'Year', 'Region', 'Photo', 'Harmony'];
 
-        let gamePhase = 'bidding';
-        let currentRound = 1;
-        let totalRounds = 3;
-        let travelCount = 0;
-        let maxTravels = 3;
-        let playerCountries = {
-            player1: [],
-            player2: []
-        };
+        let gamePhase = 'bidding', currentRound = 1, totalRounds = 3, travelCount = 0, maxTravels = 3;
+        let playerCountries = { player1: [], player2: [] };
         let globe;
 
-        // Sample cities data with coordinates (keeping your existing cities)
         const cities = [
             { name: 'New York', lat: 40.7128, lng: -74.0060, region: 'north america', popularity: 9, iata: 'JFK' },
             { name: 'London', lat: 51.5074, lng: -0.1278, region: 'europe', popularity: 8, iata: 'LHR' },
@@ -453,45 +137,24 @@
             constructor() {
                 this.paintings = [];
                 this.regionColors = {
-                    'north america': 'blue',
-                    'south america': 'red',
-                    'oceania': 'lime',
-                    'europe': 'cyan',
-                    'africa': 'yellow',
-                    'south asia': 'orange',
-                    'east asia': 'darkred'
+                    'north america': 'blue', 'south america': 'red', 'oceania': 'lime',
+                    'europe': 'cyan', 'africa': 'yellow', 'south asia': 'orange', 'east asia': 'darkred'
                 };
                 this.init();
             }
 
             async init() {
-                console.log('Initializing game...');
                 this.initGlobe();
                 await this.fetchPaintings();
-                console.log('Paintings fetched:', this.paintings.length);
                 this.renderPaintings();
                 this.updateUI();
             }
 
             async initGlobe() {
                 try {
-                    console.log('Initializing globe...');
                     const globeElement = document.getElementById('globeViz');
-                    if (!globeElement) {
-                        console.error('Globe container not found!');
-                        return;
-                    }
+                    if (!globeElement || typeof Globe === 'undefined') return;
 
-                    console.log('Globe element found, dimensions:', globeElement.clientWidth, 'x', globeElement.clientHeight);
-
-                    // Check if Globe constructor is available
-                    if (typeof Globe === 'undefined') {
-                        console.error('Globe constructor not available!');
-                        return;
-                    }
-
-                    console.log('Creating Globe instance...');
-                    // Initialize globe with cities and real route data
                     globe = new Globe(globeElement)
                         .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
                         .backgroundColor('rgba(0,0,0,1)')
@@ -503,11 +166,7 @@
                         .labelDotRadius(d => Math.sqrt(d.popularity) * 0.6)
                         .labelColor(() => 'rgba(255, 165, 0, 1.0)')
                         .labelResolution(2)
-                        .onLabelClick((label) => {
-                            console.log('City clicked:', label.name);
-                            this.handleCityClick(label);
-                        })
-                        // Arc configuration matching reference code
+                        .onLabelClick(label => this.handleCityClick(label))
                         .arcLabel(d => `${d.airline}: ${d.srcIata} → ${d.dstIata}`)
                         .arcStartLat(d => d.srcAirport.lat)
                         .arcStartLng(d => d.srcAirport.lng)
@@ -524,36 +183,23 @@
                             });
                         });
 
-                    console.log('Globe instance created, loading real flight data...');
-
-                    // Load real flight data
                     await this.loadFlightData();
+                    
+                    globeElement.addEventListener('dragstart', e => e.preventDefault());
+                    globeElement.addEventListener('selectstart', e => e.preventDefault());
 
-                    // Prevent drag ghosting by disabling image dragging
-                    globeElement.addEventListener('dragstart', (e) => e.preventDefault());
-                    globeElement.addEventListener('selectstart', (e) => e.preventDefault());
-
-                    // Force multiple resizes to ensure proper rendering
                     const resizeGlobe = () => {
                         if (globe && globe.renderer && globeElement.clientWidth > 0) {
-                            console.log('Resizing globe to:', globeElement.clientWidth, 'x', globeElement.clientHeight);
                             globe.renderer().setSize(globeElement.clientWidth, globeElement.clientHeight);
                             globe.camera().aspect = globeElement.clientWidth / globeElement.clientHeight;
                             globe.camera().updateProjectionMatrix();
                         }
                     };
 
-                    setTimeout(resizeGlobe, 100);
-                    setTimeout(resizeGlobe, 500);
-                    setTimeout(resizeGlobe, 1000);
-
-                    // Add window resize listener
+                    [100, 500, 1000].forEach(delay => setTimeout(resizeGlobe, delay));
                     window.addEventListener('resize', resizeGlobe);
-
-                    console.log('Globe initialized successfully');
                 } catch (error) {
                     console.error('Error initializing globe:', error);
-                    console.error('Error stack:', error.stack);
                 }
             }
 
@@ -581,7 +227,6 @@
                         .map(r => ({ ...r, srcAirport: airportMap[r.srcIata], dstAirport: airportMap[r.dstIata] }));
 
                     globe.arcsData(arcs);
-                    console.log('Loaded', arcs.length, 'flight routes');
                 } catch (error) {
                     console.error('Flight data load failed:', error);
                     globe.arcsData([]);
@@ -590,7 +235,6 @@
 
             handleCityClick(city) {
                 if (gamePhase === 'nomination') {
-                    // Add city to current player's countries
                     const currentPlayer = playerCountries.player1.length <= playerCountries.player2.length ? 'player1' : 'player2';
                     if (!playerCountries[currentPlayer].includes(city.name)) {
                         playerCountries[currentPlayer].push(city.name);
@@ -599,10 +243,7 @@
                 } else if (gamePhase === 'travel') {
                     travelCount++;
                     this.updateUI();
-                    // Auto-advance if max travels reached
-                    if (travelCount >= maxTravels) {
-                        this.advanceRound();
-                    }
+                    if (travelCount >= maxTravels) this.advanceRound();
                 }
             }
 
@@ -612,7 +253,6 @@
                     travelCount = 0;
                     gamePhase = 'nomination';
                 } else {
-                    // Game complete
                     gamePhase = 'complete';
                 }
                 this.updateUI();
@@ -624,21 +264,13 @@
                 document.getElementById('player1Countries').textContent = playerCountries.player1.join(', ');
                 document.getElementById('player2Countries').textContent = playerCountries.player2.join(', ');
 
-                // Update game status
                 this.updateGameStatus();
 
-                // Update button styles
-                document.querySelectorAll('header button').forEach(btn => {
-                    btn.style.backgroundColor = '#555';
-                });
-
-                const activeBtn = document.getElementById(gamePhase + 'Btn') ||
+                document.querySelectorAll('header button').forEach(btn => btn.style.backgroundColor = '#555');
+                const activeBtn = document.getElementById(gamePhase + 'Btn') || 
                     (gamePhase === 'nomination' ? document.querySelector('button[onclick*="nomination"]') : null);
-                if (activeBtn) {
-                    activeBtn.style.backgroundColor = '#4CAF50';
-                }
+                if (activeBtn) activeBtn.style.backgroundColor = '#4CAF50';
 
-                // Handle gallery visibility and globe blur based on game phase
                 const gallerySection = document.getElementById('gallerySection');
                 const globeSection = document.querySelector('.globe-section');
 
@@ -661,13 +293,9 @@
                     return;
                 }
 
-                // Update round status
                 roundStatus.textContent = `${currentRound} / ${totalRounds} rounds of nominate, auction`;
 
-                // Update stage status
-                let stageText = '';
-                let nextStage = '';
-
+                let stageText = '', nextStage = '';
                 if (gamePhase === 'nomination') {
                     stageText = `${currentRound}/3 nomination`;
                     nextStage = 'bidding';
@@ -676,30 +304,21 @@
                     nextStage = 'travel';
                 } else if (gamePhase === 'travel') {
                     stageText = `${travelCount}/${maxTravels} travel`;
-                    if (travelCount >= maxTravels) {
-                        nextStage = currentRound < totalRounds ? 'next round' : 'game complete';
-                    } else {
-                        nextStage = 'continue travel';
-                    }
+                    nextStage = travelCount >= maxTravels ? 
+                        (currentRound < totalRounds ? 'next round' : 'game complete') : 'continue travel';
                 }
 
                 stageStatus.textContent = `${stageText} - next stage: ${nextStage}`;
             }
 
             async fetchPaintings() {
-                console.log('Fetching paintings from Airtable...');
-                console.log('Using config:', AIRTABLE_CONFIG);
-
                 try {
                     if (!AIRTABLE_CONFIG.TOKEN || AIRTABLE_CONFIG.TOKEN === 'YOUR_AIRTABLE_TOKEN_HERE') {
-                        console.warn('Airtable token not configured, using fallback data');
                         this.paintings = this.getFallbackPaintings();
                         return;
                     }
 
                     const url = `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_ID}`;
-                    console.log('Fetching from URL:', url);
-
                     const response = await fetch(url, {
                         headers: {
                             'Authorization': `Bearer ${AIRTABLE_CONFIG.TOKEN}`,
@@ -707,364 +326,100 @@
                         }
                     });
 
-                    console.log('Response status:', response.status, response.statusText);
-
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('Airtable API error response:', errorText);
-                        throw new Error(`Airtable API error: ${response.status} ${response.statusText} - ${errorText}`);
+                        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
                     }
 
                     const data = await response.json();
-                    console.log('Raw Airtable data:', data);
-                    console.log('Number of records:', data.records?.length || 0);
-
                     if (!data.records || data.records.length === 0) {
-                        console.warn('No records found in Airtable response');
                         this.paintings = this.getFallbackPaintings();
                         return;
                     }
 
-                    // Log first record to see field structure
-                    console.log('First record fields:', data.records[0]?.fields);
-
-                    // Validate expected fields
-                    this.validateAirtableFields(data.records[0]?.fields);
-
-                    // Transform Airtable records to painting objects
                     this.paintings = data.records.map(record => {
                         const fields = record.fields;
-                        console.log('Processing record:', record.id, fields);
-
-                        // Map Airtable fields to your exact specification:
-                        // Original name, Short Title, Artist, Year, Region, Photo, Harmony
-                        const painting = {
+                        return {
                             id: record.id,
-                            // Use Short Title as primary, fallback to Original name
                             title: fields['Short Title'] || fields['Original name'] || 'Untitled',
                             originalName: fields['Original name'] || '',
                             author: fields['Artist'] || 'Unknown Artist',
                             year: fields['Year'] ? String(fields['Year']) : 'Unknown',
-                            // Use Harmony for the type/style field
                             type: fields['Harmony'] || 'Unknown Style',
-                            // Map Region tags to game regions
                             region: this.mapRegionFromTags(fields['Region']),
-                            // Extract image URL from Photo field
                             image: this.extractImageUrl(fields['Photo']),
-                            // Store Harmony as description too
                             description: fields['Harmony'] || '',
                             harmony: fields['Harmony'] || '',
-                            // Store original region tags for reference
                             regionTags: fields['Region'] || []
                         };
-
-                        console.log('Mapped painting:', painting);
-                        return painting;
-                    }).filter(painting => {
-                        // Filter out records that don't have essential data
-                        const hasTitle = painting.title && painting.title !== 'Untitled';
-                        const hasArtist = painting.author && painting.author !== 'Unknown Artist';
-                        return hasTitle || hasArtist; // Keep if has either title or artist
-                    });
-
-                    console.log('Final paintings array:', this.paintings);
-                    console.log('Paintings loaded from Airtable:', this.paintings.length);
+                    }).filter(p => (p.title && p.title !== 'Untitled') || (p.author && p.author !== 'Unknown Artist'));
 
                     if (this.paintings.length === 0) {
-                        console.warn('No valid paintings found after filtering, using fallback data');
                         this.paintings = this.getFallbackPaintings();
                     }
-
                 } catch (error) {
                     console.error('Error fetching paintings from Airtable:', error);
-                    console.error('Error details:', error.message);
-                    console.error('Error stack:', error.stack);
-                    console.warn('Using fallback data due to Airtable error');
                     this.paintings = this.getFallbackPaintings();
                 }
             }
 
-            validateAirtableFields(sampleFields) {
-                if (!sampleFields) {
-                    console.warn('No sample fields to validate');
-                    return;
-                }
-
-                console.log('Validating Airtable fields...');
-                console.log('Expected fields:', EXPECTED_FIELDS);
-                console.log('Available fields:', Object.keys(sampleFields));
-
-                const missingFields = [];
-                const presentFields = [];
-
-                EXPECTED_FIELDS.forEach(field => {
-                    if (sampleFields.hasOwnProperty(field)) {
-                        presentFields.push(field);
-                        console.log(`✓ Found field: "${field}" = ${sampleFields[field]}`);
-                    } else {
-                        missingFields.push(field);
-                        console.warn(`✗ Missing field: "${field}"`);
-                    }
-                });
-
-                if (missingFields.length > 0) {
-                    console.warn('Missing expected fields:', missingFields);
-                    console.log('Available fields that might be alternatives:',
-                        Object.keys(sampleFields).filter(key => !EXPECTED_FIELDS.includes(key)));
-                }
-
-                console.log(`Field validation complete: ${presentFields.length}/${EXPECTED_FIELDS.length} fields found`);
-            }
-
             getFallbackPaintings() {
                 return [
-                    {
-                        title: "The Starry Night",
-                        author: "Vincent van Gogh",
-                        year: "1889",
-                        type: "Post-Impressionism",
-                        region: "europe",
-                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
-                    },
-                    {
-                        title: "The Great Wave",
-                        author: "Katsushika Hokusai",
-                        year: "1831",
-                        type: "Ukiyo-e",
-                        region: "east asia",
-                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/300px-The_Great_Wave_off_Kanagawa.jpg"
-                    },
-                    {
-                        title: "Mona Lisa",
-                        author: "Leonardo da Vinci",
-                        year: "1503",
-                        type: "Renaissance",
-                        region: "europe",
-                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg"
-                    },
-                    {
-                        title: "American Gothic",
-                        author: "Grant Wood",
-                        year: "1930",
-                        type: "Regionalism",
-                        region: "north america",
-                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg"
-                    },
-                    {
-                        title: "Girl with a Pearl Earring",
-                        author: "Johannes Vermeer",
-                        year: "1665",
-                        type: "Baroque",
-                        region: "europe",
-                        image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/300px-1665_Girl_with_a_Pearl_Earring.jpg"
-                    },
-                    {
-                        title: "The Persistence of Memory",
-                        author: "Salvador Dalí",
-                        year: "1931",
-                        type: "Surrealism",
-                        region: "europe",
-                        image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg"
-                    }
+                    { title: "The Starry Night", author: "Vincent van Gogh", year: "1889", type: "Post-Impressionism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg" },
+                    { title: "The Great Wave", author: "Katsushika Hokusai", year: "1831", type: "Ukiyo-e", region: "east asia", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/300px-The_Great_Wave_off_Kanagawa.jpg" },
+                    { title: "Mona Lisa", author: "Leonardo da Vinci", year: "1503", type: "Renaissance", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg" },
+                    { title: "American Gothic", author: "Grant Wood", year: "1930", type: "Regionalism", region: "north america", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg" },
+                    { title: "Girl with a Pearl Earring", author: "Johannes Vermeer", year: "1665", type: "Baroque", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/300px-1665_Girl_with_a_Pearl_Earring.jpg" },
+                    { title: "The Persistence of Memory", author: "Salvador Dalí", year: "1931", type: "Surrealism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg" }
                 ];
             }
 
             mapRegionFromTags(regionTags) {
-                if (!regionTags) {
-                    return 'europe'; // default
-                }
+                if (!regionTags) return 'europe';
 
-                // Handle both array and string formats
-                let tags = [];
-                if (Array.isArray(regionTags)) {
-                    tags = regionTags;
-                } else if (typeof regionTags === 'string') {
-                    tags = [regionTags];
-                } else {
-                    return 'europe'; // default
-                }
+                let tags = Array.isArray(regionTags) ? regionTags : typeof regionTags === 'string' ? [regionTags] : [];
+                if (tags.length === 0) return 'europe';
 
-                if (tags.length === 0) {
-                    return 'europe'; // default
-                }
-
-                // Map your Airtable region tags to game regions
                 const tagToRegionMap = {
-                    // European Art variations
-                    'European Art': 'europe',
-                    'european art': 'europe',
-                    'europe': 'europe',
-                    'western art': 'europe',
-                    'renaissance': 'europe',
-                    'baroque': 'europe',
-                    'impressionism': 'europe',
-
-                    // South American Art variations
-                    'South American Art': 'south america',
-                    'south american art': 'south america',
-                    'south america': 'south america',
-                    'latin american art': 'south america',
-                    'brazilian art': 'south america',
-                    'mexican art': 'south america',
-
-                    // North American Art variations
-                    'North American Art': 'north america',
-                    'north american art': 'north america',
-                    'north america': 'north america',
-                    'american art': 'north america',
-                    'usa art': 'north america',
-                    'canadian art': 'north america',
-
-                    // East Asian Art variations
-                    'East Asian Art': 'east asia',
-                    'east asian art': 'east asia',
-                    'east asia': 'east asia',
-                    'asian art': 'east asia',
-                    'chinese art': 'east asia',
-                    'japanese art': 'east asia',
-                    'korean art': 'east asia',
-
-                    // South Asian Art variations
-                    'South Asian Art': 'south asia',
-                    'south asian art': 'south asia',
-                    'south asia': 'south asia',
-                    'indian art': 'south asia',
-                    'buddhist art': 'south asia',
-                    'hindu art': 'south asia',
-
-                    // African Art variations
-                    'African Art': 'africa',
-                    'african art': 'africa',
-                    'africa': 'africa',
-                    'egyptian art': 'africa',
-                    'tribal art': 'africa',
-
-                    // Oceanian Art variations
-                    'Oceanian Art': 'oceania',
-                    'oceanian art': 'oceania',
-                    'oceania': 'oceania',
-                    'australian art': 'oceania',
-                    'aboriginal art': 'oceania',
-                    'pacific art': 'oceania'
+                    'European Art': 'europe', 'european art': 'europe', 'europe': 'europe', 'western art': 'europe', 'renaissance': 'europe', 'baroque': 'europe', 'impressionism': 'europe',
+                    'South American Art': 'south america', 'south american art': 'south america', 'south america': 'south america', 'latin american art': 'south america', 'brazilian art': 'south america', 'mexican art': 'south america',
+                    'North American Art': 'north america', 'north american art': 'north america', 'north america': 'north america', 'american art': 'north america', 'usa art': 'north america', 'canadian art': 'north america',
+                    'East Asian Art': 'east asia', 'east asian art': 'east asia', 'east asia': 'east asia', 'asian art': 'east asia', 'chinese art': 'east asia', 'japanese art': 'east asia', 'korean art': 'east asia',
+                    'South Asian Art': 'south asia', 'south asian art': 'south asia', 'south asia': 'south asia', 'indian art': 'south asia', 'buddhist art': 'south asia', 'hindu art': 'south asia',
+                    'African Art': 'africa', 'african art': 'africa', 'africa': 'africa', 'egyptian art': 'africa', 'tribal art': 'africa',
+                    'Oceanian Art': 'oceania', 'oceanian art': 'oceania', 'oceania': 'oceania', 'australian art': 'oceania', 'aboriginal art': 'oceania', 'pacific art': 'oceania'
                 };
 
-                // Check each tag for a match
                 for (const tag of tags) {
                     if (!tag) continue;
                     const tagLower = String(tag).toLowerCase().trim();
-                    if (tagToRegionMap[tagLower]) {
-                        console.log(`Mapped region tag "${tag}" to "${tagToRegionMap[tagLower]}"`);
-                        return tagToRegionMap[tagLower];
-                    }
+                    if (tagToRegionMap[tagLower]) return tagToRegionMap[tagLower];
                 }
-
-                console.log(`No region mapping found for tags: ${tags.join(', ')}, using default: europe`);
-                return 'europe'; // default fallback
-            }
-
-            mapLocationToRegion(location) {
-                if (!location) return 'europe'; // default
-
-                const locationLower = location.toLowerCase();
-
-                // Map countries/locations to regions
-                const regionMap = {
-                    // Europe
-                    'france': 'europe', 'italy': 'europe', 'spain': 'europe', 'germany': 'europe',
-                    'netherlands': 'europe', 'belgium': 'europe', 'austria': 'europe', 'switzerland': 'europe',
-                    'uk': 'europe', 'england': 'europe', 'britain': 'europe', 'united kingdom': 'europe',
-                    'russia': 'europe', 'poland': 'europe', 'czech republic': 'europe', 'hungary': 'europe',
-                    'europe': 'europe', 'european': 'europe',
-
-                    // North America
-                    'usa': 'north america', 'united states': 'north america', 'america': 'north america',
-                    'canada': 'north america', 'mexico': 'north america', 'north america': 'north america',
-
-                    // South America
-                    'brazil': 'south america', 'argentina': 'south america', 'chile': 'south america',
-                    'peru': 'south america', 'colombia': 'south america', 'south america': 'south america',
-
-                    // East Asia
-                    'japan': 'east asia', 'china': 'east asia', 'korea': 'east asia', 'south korea': 'east asia',
-                    'north korea': 'east asia', 'taiwan': 'east asia', 'east asia': 'east asia', 'asia': 'east asia',
-
-                    // South Asia
-                    'india': 'south asia', 'pakistan': 'south asia', 'bangladesh': 'south asia',
-                    'sri lanka': 'south asia', 'nepal': 'south asia', 'south asia': 'south asia',
-
-                    // Africa
-                    'egypt': 'africa', 'south africa': 'africa', 'nigeria': 'africa', 'kenya': 'africa',
-                    'morocco': 'africa', 'tunisia': 'africa', 'algeria': 'africa', 'africa': 'africa',
-
-                    // Oceania
-                    'australia': 'oceania', 'new zealand': 'oceania', 'fiji': 'oceania', 'oceania': 'oceania'
-                };
-
-                // Check for direct matches
-                for (const [country, region] of Object.entries(regionMap)) {
-                    if (locationLower.includes(country)) {
-                        return region;
-                    }
-                }
-
-                return 'europe'; // default fallback
+                return 'europe';
             }
 
             extractImageUrl(imageField) {
-                if (!imageField) {
-                    console.log('No image field provided');
-                    return null;
-                }
-
-                console.log('Extracting image URL from:', imageField);
-
-                // Handle Airtable attachment field (array of objects)
+                if (!imageField) return null;
                 if (Array.isArray(imageField) && imageField.length > 0) {
                     const attachment = imageField[0];
-                    console.log('Processing attachment:', attachment);
-
-                    // Try different URL properties in order of preference
-                    const url = attachment.url ||
-                        attachment.thumbnails?.large?.url ||
-                        attachment.thumbnails?.full?.url ||
-                        attachment.thumbnails?.small?.url;
-
-                    if (url) {
-                        console.log('Extracted URL from attachment:', url);
-                        return url;
-                    }
+                    return attachment.url || attachment.thumbnails?.large?.url || attachment.thumbnails?.full?.url || attachment.thumbnails?.small?.url;
                 }
-
-                // Handle direct URL string
-                if (typeof imageField === 'string' && imageField.trim()) {
-                    console.log('Using direct URL string:', imageField);
-                    return imageField.trim();
-                }
-
-                // Handle object with URL property
-                if (imageField && typeof imageField === 'object' && imageField.url) {
-                    console.log('Using URL from object:', imageField.url);
-                    return imageField.url;
-                }
-
-                console.log('Could not extract image URL from field');
+                if (typeof imageField === 'string' && imageField.trim()) return imageField.trim();
+                if (imageField && typeof imageField === 'object' && imageField.url) return imageField.url;
                 return null;
             }
 
             initializeBiddingData() {
-                // Initialize simple bidding data for each painting
                 this.biddingData = this.paintings.map((painting, index) => ({
                     paintingId: index,
                     currentBid: 2.5,
-                    currentTeam: index % 3, // Rotate teams: 0=cyan, 1=magenta, 2=lime
+                    currentTeam: index % 3,
                     timeRemaining: 15.750,
                     isActive: true
                 }));
             }
 
             getCurrentTeamColor(paintingIndex) {
-                const colors = ['cyan', 'magenta', 'lime'];
-                return colors[paintingIndex % 3];
+                return ['cyan', 'magenta', 'lime'][paintingIndex % 3];
             }
 
             getCurrentTeamColorRGBA(paintingIndex, opacity = 0.1) {
@@ -1073,41 +428,26 @@
                     'magenta': `rgba(255, 0, 255, ${opacity})`,
                     'lime': `rgba(0, 255, 0, ${opacity})`
                 };
-                const colors = ['cyan', 'magenta', 'lime'];
-                const colorName = colors[paintingIndex % 3];
-                return colorMap[colorName];
+                return colorMap[this.getCurrentTeamColor(paintingIndex)];
             }
 
             renderPaintings() {
-                console.log('Rendering paintings... gamePhase:', gamePhase);
                 const container = document.getElementById('paintingsContainer');
+                if (!container) return;
 
-                if (!container) {
-                    console.error('Paintings container not found!');
-                    return;
-                }
-
-                // Initialize bidding data if in bidding phase
-                if (gamePhase === 'bidding') {
-                    this.initializeBiddingData();
-                }
+                if (gamePhase === 'bidding') this.initializeBiddingData();
 
                 if (this.paintings.length === 0) {
-                    console.log('No paintings to render');
                     container.innerHTML = '<div class="error">No paintings found.</div>';
                     return;
                 }
 
-                console.log('Creating grid for', this.paintings.length, 'paintings');
                 const grid = document.createElement('div');
                 grid.className = 'paintings-grid';
 
                 this.paintings.forEach((painting, index) => {
-                    console.log('Rendering painting', index + 1, ':', painting.title);
                     const card = document.createElement('div');
                     card.className = 'painting-card';
-
-                    // Add region color to full border
                     card.style.borderColor = this.regionColors[painting.region] || '#fff';
 
                     if (gamePhase === 'bidding') {
@@ -1121,74 +461,7 @@
                                     <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
                                          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: auto; object-fit: contain; margin: 10px 0; max-height: 300px; min-height: 120px;">
                                     <div class="painting-meters svelte-1pd0inp">
-                                        ${(() => {
-                                // City mapping with offsets for each harmony color (all array-based)
-                                // Array order: ['cai', 'cpt', 'dxb', 'jak', 'lag', 'ldn', 'mxc', 'mum', 'nyc', 'sao', 'syd', 'tyo']
-                                const cityOffsets = {
-                                    'darkred': [0, 3, 0, 4, 0, 2, 1, 1, 3, 4, 2, 3],
-                                    'red': [0, 2, 0, 2, 2, 2, 2, 2, 4, 4, 1, 4],
-                                    'cyan': [0, 2, 0, 1, 1, 4, 1, 1, 4, 1, 1, 3],
-                                    'orange': [0, 4, 3, 2, 2, 2, 0, 4, 4, 0, 2, 3],
-                                    'yellow': [1, 4, 0, 2, 4, 2, 2, 1, 3, 1, 0, 2],
-                                    'blue': [1, 3, 0, 2, 1, 3, 4, 1, 4, 2, 1, 4],
-                                    'lime': [0, 4, 1, 4, 3, 2, 1, 2, 3, 1, 4, 3],
-                                    'magenta': [5, 1, 5, 2, 0, 3, 3, 2, 2, 0, 2, 1]
-                                };
-
-                                const cities = ['cai', 'cpt', 'dxb', 'jak', 'lag', 'ldn', 'mxc', 'mum', 'nyc', 'sao', 'syd', 'tyo'];
-                                // Use the region color (outline color) to determine city positioning
-                                const regionColor = this.regionColors[painting.region] || 'blue';
-                                const harmonyColor = regionColor;
-
-
-                                return Array.from({ length: 12 }, (_, i) => {
-                                    if (i >= cities.length) return ''; // Skip if more rows than cities
-
-                                    const cityForThisRow = cities[i];
-                                    let position;
-
-                                    // Calculate position based on harmony (all colors now array-based)
-                                    if (cityOffsets[harmonyColor] && Array.isArray(cityOffsets[harmonyColor])) {
-                                        // Get the offset for this city from the array
-                                        const offset = cityOffsets[harmonyColor][i] || 0;
-
-                                        // For most colors, calculate base + offset
-                                        if (harmonyColor === 'magenta') {
-                                            // Magenta is special case - use direct positions (can have 5)
-                                            position = offset;
-                                        } else {
-                                            // For other colors, use base number + offset to ensure proper randomization
-                                            // Max offset is 4 for most colors, so base must be 0-5 to stay within 0-9
-                                            const baseNumber = index % 6; // Use 0-5 as base range
-                                            position = baseNumber + offset;
-                                        }
-
-
-
-                                        // Ensure position stays within bounds (0-9)
-                                        position = Math.max(0, Math.min(9, position));
-                                    } else {
-                                        // Fallback for unknown harmony colors
-                                        position = index % 10;
-                                    }
-
-                                    return `
-                                                    <div class="painting-meter-row svelte-1pd0inp">
-                                                        <div class="painting-meter-sections svelte-1pd0inp">
-                                                            ${Array.from({ length: 10 }, (_, j) => {
-                                        if (j === position) {
-                                            return `<div class="painting-meter-section svelte-1pd0inp city-section" data-city="${cityForThisRow.toUpperCase()}">${cityForThisRow.toUpperCase()}</div>`;
-                                        } else if (j > position) {
-                                            return `<div class="painting-meter-section svelte-1pd0inp after-city"></div>`;
-                                        } else {
-                                            return `<div class="painting-meter-section svelte-1pd0inp"></div>`;
-                                        }
-                                    }).join('')}
-                                                        </div>
-                                                    </div>
-                                                `;
-                                }).filter(row => row !== '').join('');
-                            })()}
+                                        ${this.generateCityMeters(painting, index)}
                                     </div>
                                 </div>
                             </div>
@@ -1211,18 +484,7 @@
                                 </div>
                             </div>
                         `;
-                    } else {
-                        card.innerHTML = `
-                            <div class="painting-title title-font">${painting.title}</div>
-                            <div class="painting-author">${painting.author} | ${painting.year}</div>
-                            <div class="painting-type">${painting.type}</div>
-                            <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
-                        `;
-                    }
 
-                    if (gamePhase === 'bidding') {
-                        // Add click handler for bid button
                         const bidButton = card.querySelector('.bid-button');
                         if (bidButton) {
                             bidButton.addEventListener('click', (e) => {
@@ -1231,19 +493,22 @@
                             });
                         }
 
-                        // Start timer for this painting
                         this.startBiddingTimer(card, index);
 
-                        // Add click handler for main card (non-bidding areas)
                         card.addEventListener('click', (e) => {
                             if (!e.target.closest('.bid-button') && !e.target.closest('.bid-display')) {
                                 this.showPaintingDetails(painting);
                             }
                         });
                     } else {
-                        card.addEventListener('click', () => {
-                            this.showPaintingDetails(painting);
-                        });
+                        card.innerHTML = `
+                            <div class="painting-title title-font">${painting.title}</div>
+                            <div class="painting-author">${painting.author} | ${painting.year}</div>
+                            <div class="painting-type">${painting.type}</div>
+                            <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
+                        `;
+                        card.addEventListener('click', () => this.showPaintingDetails(painting));
                     }
 
                     grid.appendChild(card);
@@ -1251,29 +516,76 @@
 
                 container.innerHTML = '';
                 container.appendChild(grid);
-                console.log('Paintings rendered successfully');
+            }
+
+            generateCityMeters(painting, index) {
+                const cityOffsets = {
+                    'darkred': [0, 3, 0, 4, 0, 2, 1, 1, 3, 4, 2, 3],
+                    'red': [0, 2, 0, 2, 2, 2, 2, 2, 4, 4, 1, 4],
+                    'cyan': [0, 2, 0, 1, 1, 4, 1, 1, 4, 1, 1, 3],
+                    'orange': [0, 4, 3, 2, 2, 2, 0, 4, 4, 0, 2, 3],
+                    'yellow': [1, 4, 0, 2, 4, 2, 2, 1, 3, 1, 0, 2],
+                    'blue': [1, 3, 0, 2, 1, 3, 4, 1, 4, 2, 1, 4],
+                    'lime': [0, 4, 1, 4, 3, 2, 1, 2, 3, 1, 4, 3],
+                    'magenta': [5, 1, 5, 2, 0, 3, 3, 2, 2, 0, 2, 1]
+                };
+
+                const cities = ['cai', 'cpt', 'dxb', 'jak', 'lag', 'ldn', 'mxc', 'mum', 'nyc', 'sao', 'syd', 'tyo'];
+                const regionColor = this.regionColors[painting.region] || 'blue';
+                const harmonyColor = regionColor;
+
+                return Array.from({ length: 12 }, (_, i) => {
+                    if (i >= cities.length) return '';
+
+                    const cityForThisRow = cities[i];
+                    let position;
+
+                    if (cityOffsets[harmonyColor] && Array.isArray(cityOffsets[harmonyColor])) {
+                        const offset = cityOffsets[harmonyColor][i] || 0;
+
+                        if (harmonyColor === 'magenta') {
+                            position = offset;
+                        } else {
+                            const baseNumber = index % 6;
+                            position = baseNumber + offset;
+                        }
+
+                        position = Math.max(0, Math.min(9, position));
+                    } else {
+                        position = index % 10;
+                    }
+
+                    return `
+                        <div class="painting-meter-row svelte-1pd0inp">
+                            <div class="painting-meter-sections svelte-1pd0inp">
+                                ${Array.from({ length: 10 }, (_, j) => {
+                                    if (j === position) {
+                                        return `<div class="painting-meter-section svelte-1pd0inp city-section" data-city="${cityForThisRow.toUpperCase()}">${cityForThisRow.toUpperCase()}</div>`;
+                                    } else if (j > position) {
+                                        return `<div class="painting-meter-section svelte-1pd0inp after-city"></div>`;
+                                    } else {
+                                        return `<div class="painting-meter-section svelte-1pd0inp"></div>`;
+                                    }
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).filter(row => row !== '').join('');
             }
 
             handleBidClick(card, paintingIndex) {
-                console.log('Bid clicked for painting', paintingIndex);
-
                 const bidData = this.biddingData[paintingIndex];
                 const colors = ['cyan', 'magenta', 'lime'];
 
-                // Increase bid by 0.5M
                 bidData.currentBid += 0.5;
-
-                // Rotate to next team
                 bidData.currentTeam = (bidData.currentTeam + 1) % 3;
                 const newTeamColor = colors[bidData.currentTeam];
 
-                // Update display
                 const bidDisplay = card.querySelector('.bid-display');
                 const currentBidElement = card.querySelector('.current-bid-amount');
                 const bidButton = card.querySelector('.bid-button');
                 const buttonAmount = bidButton.querySelector('.bid-button-amount');
 
-                // Update colors and amounts - 10% opacity fill with colored border
                 const colorMap = {
                     'cyan': 'rgba(0, 255, 255, 0.1)',
                     'magenta': 'rgba(255, 0, 255, 0.1)',
@@ -1284,11 +596,8 @@
                 currentBidElement.textContent = `${bidData.currentBid.toFixed(1)}M`;
                 buttonAmount.textContent = `${(bidData.currentBid + 0.5).toFixed(1)}M`;
 
-                // Trigger pop-in animation on the colored box
                 bidDisplay.classList.remove('svelte-1nlw3im');
-                setTimeout(() => {
-                    bidDisplay.classList.add('svelte-1nlw3im');
-                }, 10);
+                setTimeout(() => bidDisplay.classList.add('svelte-1nlw3im'), 10);
             }
 
             startBiddingTimer(card, paintingIndex) {
@@ -1304,25 +613,17 @@
                         this.endBidding(card);
                     }
 
-                    // Update timer display
                     timerNumber.textContent = bidData.timeRemaining.toFixed(3);
                 }, 1);
 
-                // Store timer reference for cleanup
                 card.dataset.timerId = timer;
             }
 
             endBidding(card) {
-                console.log('Bidding ended for painting');
-
-                // Mark as over
                 card.classList.add('over');
                 const script = card.querySelector('.script');
-                if (script) {
-                    script.classList.add('over');
-                }
+                if (script) script.classList.add('over');
 
-                // Disable bid button
                 const bidButton = card.querySelector('.bid-button');
                 if (bidButton) {
                     bidButton.disabled = true;
@@ -1334,16 +635,9 @@
             showPaintingDetails(painting) {
                 const modal = document.createElement('div');
                 modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0, 0, 0, 0.9);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 1000;
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0, 0, 0, 0.9); display: flex; justify-content: center;
+                    align-items: center; z-index: 1000;
                 `;
 
                 modal.innerHTML = `
@@ -1358,24 +652,19 @@
                 `;
 
                 modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.remove();
-                    }
+                    if (e.target === modal) modal.remove();
                 });
 
                 document.body.appendChild(modal);
             }
         }
 
-        // Global functions for button handlers
         function setGamePhase(phase) {
-            if (phase === 'travel') {
-                travelCount = 0; // Reset travel count when entering travel phase
-            }
+            if (phase === 'travel') travelCount = 0;
             gamePhase = phase;
             if (window.game) {
                 window.game.updateUI();
-                window.game.renderPaintings(); // Re-render paintings when phase changes
+                window.game.renderPaintings();
             }
         }
 
@@ -1384,64 +673,37 @@
             travelCount = 0;
             playerCountries = { player1: [], player2: [] };
             gamePhase = 'nomination';
-            if (window.game) {
-                window.game.updateUI();
-            }
+            if (window.game) window.game.updateUI();
         }
 
-        let game;
-
-        // Initialize the game when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded, initializing game...');
-
-            // Function to initialize the game
             function initializeGame() {
                 try {
-                    console.log('Starting game initialization...');
                     window.game = new ArtGalleryGame();
-                    game = window.game;
                 } catch (error) {
                     console.error('Error initializing game:', error);
-                    console.error('Error stack:', error.stack);
                 }
             }
 
-            // Wait a bit for the DOM to be fully ready
             setTimeout(() => {
-                // Check if Globe is available
                 if (typeof Globe === 'undefined') {
-                    console.error('Globe.gl not loaded from initial script! Trying CDN fallback...');
-                    // Fallback to CDN
                     const script = document.createElement('script');
                     script.src = 'https://cdn.jsdelivr.net/npm/globe.gl';
-                    script.onload = () => {
-                        console.log('Globe.gl loaded from CDN');
-                        setTimeout(initializeGame, 200);
-                    };
+                    script.onload = () => setTimeout(initializeGame, 200);
                     script.onerror = () => {
-                        console.error('Failed to load Globe.gl from CDN, trying alternative...');
-                        // Try alternative CDN
                         const altScript = document.createElement('script');
                         altScript.src = 'https://unpkg.com/globe.gl';
-                        altScript.onload = () => {
-                            console.log('Globe.gl loaded from alternative CDN');
-                            setTimeout(initializeGame, 200);
-                        };
-                        altScript.onerror = () => {
-                            console.error('All CDN attempts failed, initializing without globe');
-                            initializeGame();
-                        };
+                        altScript.onload = () => setTimeout(initializeGame, 200);
+                        altScript.onerror = () => initializeGame();
                         document.head.appendChild(altScript);
                     };
                     document.head.appendChild(script);
                 } else {
-                    console.log('Globe.gl available, starting game...');
                     initializeGame();
                 }
             }, 100);
         });
     </script>
 </body>
-
 </html>
+                    '
