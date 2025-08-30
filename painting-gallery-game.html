@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,54 +9,334 @@
     <link rel="stylesheet" href="src.3607d8e2 (1).css">
     <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
     <style>
-        body { margin: 0; }
-        .game-container { display: flex; flex-direction: column; height: 100vh; position: relative; }
-        .globe-section { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1; transition: filter 0.3s ease, opacity 0.3s ease; user-select: none; pointer-events: auto; }
-        .globe-section.blurred { filter: blur(8px) brightness(0.3); }
-        #globeViz { width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; user-drag: none; }
-        .content-overlay { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; pointer-events: none; }
-        .content-overlay>* { pointer-events: auto; }
-        .gallery-section { flex: 1; background: rgba(0, 0, 0, 0.8); border-top: 2px solid #fff; overflow-y: auto; padding: 20px; transition: opacity 0.3s ease; }
-        .gallery-section.hidden { opacity: 0; pointer-events: none; }
-        .paintings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .painting-card { border: 2px solid #fff; padding: 15px; background: rgba(17, 17, 17, 0.9); transition: all 0.3s ease; }
-        .painting-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
-        .painting-title { font-size: 1.2em; margin-bottom: 5px; }
-        .painting-author { font-size: 0.9em; color: #ccc; margin-bottom: 5px; }
-        .painting-type { font-size: 0.8em; color: #999; margin-bottom: 10px; }
-        .painting-image { width: 100%; height: auto; object-fit: contain; border: 1px solid #666; margin-bottom: 10px; max-height: 400px; min-height: 120px; }
-        .loading { text-align: center; padding: 50px; font-size: 1.5em; }
-        .error { color: #ff4757; text-align: center; padding: 20px; }
-        
+        body {
+            margin: 0;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+
+        .globe-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 1;
+            transition: filter 0.3s ease, opacity 0.3s ease;
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        .globe-section.blurred {
+            filter: blur(8px) brightness(0.3);
+        }
+
+        #globeViz {
+            width: 100%;
+            height: 100%;
+            user-select: none;
+            -webkit-user-drag: none;
+            user-drag: none;
+        }
+
+        .content-overlay {
+            position: relative;
+            z-index: 2;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        .content-overlay>* {
+            pointer-events: auto;
+        }
+
+        .gallery-section {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 2px solid #fff;
+            overflow-y: auto;
+            padding: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        .gallery-section.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .paintings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .painting-card {
+            border: 2px solid #fff;
+            padding: 15px;
+            background: rgba(17, 17, 17, 0.9);
+            transition: all 0.3s ease;
+        }
+
+        .painting-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .nomination-card:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .nomination-controls {
+            user-select: none;
+        }
+
+        .nomination-controls input,
+        .nomination-controls button {
+            border-radius: 4px;
+        }
+
+        .nomination-controls button:hover {
+            background: #777 !important;
+        }
+
+        .remove-nomination-btn:hover {
+            background: #d32f2f !important;
+        }
+
+        .option.svelte-1nhjkrk:hover {
+            background: #555 !important;
+        }
+
+        .selected.svelte-1nhjkrk:hover {
+            background: #444 !important;
+        }
+
+        .painting-title {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .painting-author {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+
+        .painting-type {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .painting-image {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            border: 1px solid #666;
+            margin-bottom: 10px;
+            max-height: 400px;
+            min-height: 120px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5em;
+        }
+
+        .error {
+            color: #ff4757;
+            text-align: center;
+            padding: 20px;
+        }
+
         /* Bidding System */
-        .painting-card.wrapper.svelte-1pd0inp { border: 2px solid #fff; padding: 0; background: rgba(17, 17, 17, 0.9); transition: all 0.3s ease; min-height: 400px; position: relative; }
-        .painting-card.wrapper.svelte-1pd0inp.over { border-color: grey; color: grey; }
-        .painting-card.wrapper.svelte-1pd0inp:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
-        .bids.svelte-1pd0inp { padding: 0 !important; margin: 0; width: 100%; position: relative; }
-        .bid-button { background: #000; color: #fff; border: 2px solid #fff; padding: 6px 12px; cursor: pointer; font-size: 0.8em; text-align: center; min-width: 60px; border-radius: 0; position: absolute; top: -25px; left: 50%; transform: translateX(-50%); z-index: 10; }
-        .bid-button:hover { background: #fff; color: #000; transform: translateX(-50%) scale(1.05); }
-        .bid-button-text { font-weight: bold; margin-bottom: 2px; }
-        .bid-button-amount { font-size: 0.9em; }
-        .bid-display.svelte-1nlw3im { width: 100%; padding: 10px 15px; margin: 0; position: relative; display: flex; justify-content: space-between; align-items: center; min-height: 60px; transition: all 0.3s ease; animation: svelte-1nlw3im-pop-in 0.45s; }
-        .bid-display:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); }
-        .timer-section { text-align: left; }
-        .timer-number { font-size: 1.8em; font-weight: bold; color: #fff; line-height: 1; opacity: 1; }
-        .timer-text { font-size: 0.7em; color: #fff; margin-top: 2px; opacity: 1; }
-        .bid-info { text-align: center; flex-grow: 1; }
-        .current-bid-label { font-size: 0.9em; color: #fff; margin-bottom: 2px; opacity: 1; }
-        .current-bid-amount { font-size: 1.3em; font-weight: bold; color: #fff; opacity: 1; }
-        .script.svelte-1pd0inp.svelte-1pd0inp { padding-bottom: 200px; border: none !important; border-bottom: .75px solid #fff !important; }
-        .center.svelte-1pd0inp { margin-bottom: 0; }
-        .left.svelte-1pd0inp { margin-top: 0; padding: 0; width: 100%; }
-        .painting-meters.svelte-1pd0inp.svelte-1pd0inp { overflow: visible !important; padding-top: 6px !important; padding-bottom: 6px !important; }
-        .painting-meter-section.city-section { display: flex !important; align-items: center !important; justify-content: center !important; font-size: 0 !important; transform: scaleY(1.75) !important; z-index: 10 !important; position: relative !important; }
-        .painting-meter-section.city-section::after { content: attr(data-city) !important; font-size: 10px !important; font-weight: bold !important; color: white !important; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important; transform: scaleY(0.571) !important; display: flex !important; align-items: center !important; justify-content: center !important; z-index: 25 !important; position: relative !important; }
-        .painting-meter-section.after-city { background: rgba(25, 25, 25, 0.9) !important; }
-        .painting-meter-sections { position: relative !important; }
-        .painting-reliability-overlay { mix-blend-mode: normal !important; }
-        .painting-image { margin-bottom: 5px !important; }
+        .painting-card.wrapper.svelte-1pd0inp {
+            border: 2px solid #fff;
+            padding: 0;
+            background: rgba(17, 17, 17, 0.9);
+            transition: all 0.3s ease;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .painting-card.wrapper.svelte-1pd0inp.over {
+            border-color: grey;
+            color: grey;
+        }
+
+        .painting-card.wrapper.svelte-1pd0inp:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .bids.svelte-1pd0inp {
+            padding: 0 !important;
+            margin: 0;
+            width: 100%;
+            position: relative;
+        }
+
+        .bid-button {
+            background: #000;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-align: center;
+            min-width: 60px;
+            border-radius: 0;
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .bid-button:hover {
+            background: #fff;
+            color: #000;
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        .bid-button-text {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .bid-button-amount {
+            font-size: 0.9em;
+        }
+
+        .bid-display.svelte-1nlw3im {
+            width: 100%;
+            padding: 10px 15px;
+            margin: 0;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 60px;
+            transition: all 0.3s ease;
+            animation: svelte-1nlw3im-pop-in 0.45s;
+        }
+
+        .bid-display:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .timer-section {
+            text-align: left;
+        }
+
+        .timer-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #fff;
+            line-height: 1;
+            opacity: 1;
+        }
+
+        .timer-text {
+            font-size: 0.7em;
+            color: #fff;
+            margin-top: 2px;
+            opacity: 1;
+        }
+
+        .bid-info {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .current-bid-label {
+            font-size: 0.9em;
+            color: #fff;
+            margin-bottom: 2px;
+            opacity: 1;
+        }
+
+        .current-bid-amount {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+            opacity: 1;
+        }
+
+        .script.svelte-1pd0inp.svelte-1pd0inp {
+            padding-bottom: 200px;
+            border: none !important;
+            border-bottom: .75px solid #fff !important;
+        }
+
+        .center.svelte-1pd0inp {
+            margin-bottom: 0;
+        }
+
+        .left.svelte-1pd0inp {
+            margin-top: 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        .painting-meters.svelte-1pd0inp.svelte-1pd0inp {
+            overflow: visible !important;
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+        }
+
+        .painting-meter-section.city-section {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0 !important;
+            transform: scaleY(1.75) !important;
+            z-index: 10 !important;
+            position: relative !important;
+        }
+
+        .painting-meter-section.city-section::after {
+            content: attr(data-city) !important;
+            font-size: 10px !important;
+            font-weight: bold !important;
+            color: white !important;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 1px 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.8) !important;
+            transform: scaleY(0.571) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 25 !important;
+            position: relative !important;
+        }
+
+        .painting-meter-section.after-city {
+            background: rgba(25, 25, 25, 0.9) !important;
+        }
+
+        .painting-meter-sections {
+            position: relative !important;
+        }
+
+        .painting-reliability-overlay {
+            mix-blend-mode: normal !important;
+        }
+
+        .painting-image {
+            margin-bottom: 5px !important;
+        }
     </style>
 </head>
+
 <body>
     <div class="game-container">
         <div class="globe-section">
@@ -63,25 +344,38 @@
         </div>
         <div class="content-overlay">
             <header style="padding: 10px; background-color: rgba(40, 44, 52, 0.9); color: white; font-size: 12px;">
-                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                <div
+                    style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                     <div style="display: flex; gap: 15px; align-items: center;">
                         <div>
                             <h3 style="margin: 0 0 5px 0; font-size: 14px;">Game Controls</h3>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button onclick="setGamePhase('nomination')" style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" id="nominationBtn">Nomination</button>
-                                <button onclick="setGamePhase('bidding')" style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" id="biddingBtn">Bidding Phase</button>
-                                <button onclick="setGamePhase('travel')" style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;" id="travelBtn">Travel</button>
-                                <button onclick="resetGame()" style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset Game</button>
+                                <button onclick="setGamePhase('nomination')"
+                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
+                                    id="nominationBtn">Nomination</button>
+                                <button onclick="setGamePhase('bidding')"
+                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
+                                    id="biddingBtn">Bidding Phase</button>
+                                <button onclick="setGamePhase('travel')"
+                                    style="padding: 6px 10px; background-color: #555; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;"
+                                    id="travelBtn">Travel</button>
+                                <button onclick="resetGame()"
+                                    style="padding: 6px 10px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">Reset
+                                    Game</button>
                             </div>
                         </div>
                         <div>
                             <h3 style="margin: 0 0 5px 0; font-size: 14px;">Player Status</h3>
                             <div style="display: flex; gap: 15px; font-size: 11px;">
-                                <div><strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span> countries
-                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries"></div>
+                                <div><strong style="color: #00FFFF;">Player 1:</strong> <span id="player1Count">0</span>
+                                    countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player1Countries">
+                                    </div>
                                 </div>
-                                <div><strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span> countries
-                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries"></div>
+                                <div><strong style="color: #FF00FF;">Player 2:</strong> <span id="player2Count">0</span>
+                                    countries
+                                    <div style="font-size: 10px; color: #ccc; max-width: 150px;" id="player2Countries">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -111,8 +405,20 @@
 
         const EXPECTED_FIELDS = ['Original name', 'Short Title', 'Artist', 'Year', 'Region', 'Photo', 'Harmony'];
 
-        let gamePhase = 'bidding', currentRound = 1, totalRounds = 3, travelCount = 0, maxTravels = 3;
+        let gamePhase = 'nomination', currentRound = 1, totalRounds = 3, travelCount = 0, maxTravels = 3;
         let playerCountries = { player1: [], player2: [] };
+        let nominatedPaintings = [];
+        let currentPage = 0;
+        let paintingsPerPage = 30;
+        let allPaintings = [];
+
+        // Bidding system types
+        const BIDDING_TYPES = {
+            ENGLISH: 'english',
+            DUTCH: 'dutch',
+            BLIND: 'blind',
+            SEALED: 'sealed'
+        };
         let globe;
 
         const cities = [
@@ -186,7 +492,7 @@
                         });
 
                     await this.loadFlightData();
-                    
+
                     globeElement.addEventListener('dragstart', e => e.preventDefault());
                     globeElement.addEventListener('selectstart', e => e.preventDefault());
 
@@ -269,7 +575,7 @@
                 this.updateGameStatus();
 
                 document.querySelectorAll('header button').forEach(btn => btn.style.backgroundColor = '#555');
-                const activeBtn = document.getElementById(gamePhase + 'Btn') || 
+                const activeBtn = document.getElementById(gamePhase + 'Btn') ||
                     (gamePhase === 'nomination' ? document.querySelector('button[onclick*="nomination"]') : null);
                 if (activeBtn) activeBtn.style.backgroundColor = '#4CAF50';
 
@@ -306,7 +612,7 @@
                     nextStage = 'travel';
                 } else if (gamePhase === 'travel') {
                     stageText = `${travelCount}/${maxTravels} travel`;
-                    nextStage = travelCount >= maxTravels ? 
+                    nextStage = travelCount >= maxTravels ?
                         (currentRound < totalRounds ? 'next round' : 'game complete') : 'continue travel';
                 }
 
@@ -316,7 +622,8 @@
             async fetchPaintings() {
                 try {
                     if (!AIRTABLE_CONFIG.TOKEN || AIRTABLE_CONFIG.TOKEN === 'YOUR_AIRTABLE_TOKEN_HERE') {
-                        this.paintings = this.getFallbackPaintings();
+                        allPaintings = this.getFallbackPaintings();
+                        this.paintings = [...allPaintings];
                         return;
                     }
 
@@ -334,11 +641,12 @@
 
                     const data = await response.json();
                     if (!data.records || data.records.length === 0) {
-                        this.paintings = this.getFallbackPaintings();
+                        allPaintings = this.getFallbackPaintings();
+                        this.paintings = [...allPaintings];
                         return;
                     }
 
-                    this.paintings = data.records.map(record => {
+                    allPaintings = data.records.map(record => {
                         const fields = record.fields;
                         return {
                             id: record.id,
@@ -351,27 +659,38 @@
                             image: this.extractImageUrl(fields['Photo']),
                             description: fields['Harmony'] || '',
                             harmony: fields['Harmony'] || '',
-                            regionTags: fields['Region'] || []
+                            regionTags: fields['Region'] || [],
+                            nominated: false,
+                            biddingType: null
                         };
                     }).filter(p => (p.title && p.title !== 'Untitled') || (p.author && p.author !== 'Unknown Artist'));
 
-                    if (this.paintings.length === 0) {
-                        this.paintings = this.getFallbackPaintings();
+                    if (allPaintings.length === 0) {
+                        allPaintings = this.getFallbackPaintings();
                     }
+
+                    this.paintings = [...allPaintings];
                 } catch (error) {
                     console.error('Error fetching paintings from Airtable:', error);
-                    this.paintings = this.getFallbackPaintings();
+                    allPaintings = this.getFallbackPaintings();
+                    this.paintings = [...allPaintings];
                 }
             }
 
             getFallbackPaintings() {
                 return [
-                    { title: "The Starry Night", author: "Vincent van Gogh", year: "1889", type: "Post-Impressionism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg" },
-                    { title: "The Great Wave", author: "Katsushika Hokusai", year: "1831", type: "Ukiyo-e", region: "east asia", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/300px-The_Great_Wave_off_Kanagawa.jpg" },
-                    { title: "Mona Lisa", author: "Leonardo da Vinci", year: "1503", type: "Renaissance", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg" },
-                    { title: "American Gothic", author: "Grant Wood", year: "1930", type: "Regionalism", region: "north america", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg" },
-                    { title: "Girl with a Pearl Earring", author: "Johannes Vermeer", year: "1665", type: "Baroque", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/300px-1665_Girl_with_a_Pearl_Earring.jpg" },
-                    { title: "The Persistence of Memory", author: "Salvador Dalí", year: "1931", type: "Surrealism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg" }
+                    { title: "The Starry Night", author: "Vincent van Gogh", year: "1889", type: "Post-Impressionism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg", nominated: false, biddingType: null },
+                    { title: "The Great Wave", author: "Katsushika Hokusai", year: "1831", type: "Ukiyo-e", region: "east asia", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/300px-The_Great_Wave_off_Kanagawa.jpg", nominated: false, biddingType: null },
+                    { title: "Mona Lisa", author: "Leonardo da Vinci", year: "1503", type: "Renaissance", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg/300px-Mona_Lisa%2C_by_Leonardo_da_Vinci%2C_from_C2RMF_retouched.jpg", nominated: false, biddingType: null },
+                    { title: "American Gothic", author: "Grant Wood", year: "1930", type: "Regionalism", region: "north america", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg/300px-Grant_Wood_-_American_Gothic_-_Google_Art_Project.jpg", nominated: false, biddingType: null },
+                    { title: "Girl with a Pearl Earring", author: "Johannes Vermeer", year: "1665", type: "Baroque", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/300px-1665_Girl_with_a_Pearl_Earring.jpg", nominated: false, biddingType: null },
+                    { title: "The Persistence of Memory", author: "Salvador Dalí", year: "1931", type: "Surrealism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/The_Persistence_of_Memory.jpg/300px-The_Persistence_of_Memory.jpg", nominated: false, biddingType: null },
+                    { title: "The Scream", author: "Edvard Munch", year: "1893", type: "Expressionism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg/300px-Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg", nominated: false, biddingType: null },
+                    { title: "Guernica", author: "Pablo Picasso", year: "1937", type: "Cubism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/en/thumb/7/74/PicassoGuernica.jpg/300px-PicassoGuernica.jpg", nominated: false, biddingType: null },
+                    { title: "The Birth of Venus", author: "Sandro Botticelli", year: "1485", type: "Renaissance", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg/300px-Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg", nominated: false, biddingType: null },
+                    { title: "The Last Supper", author: "Leonardo da Vinci", year: "1498", type: "Renaissance", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/%C3%9Altima_Cena_-_Da_Vinci_5.jpg/300px-%C3%9Altima_Cena_-_Da_Vinci_5.jpg", nominated: false, biddingType: null },
+                    { title: "Water Lilies", author: "Claude Monet", year: "1919", type: "Impressionism", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Claude_Monet_-_Water_Lilies_-_1919%2C_Metropolitan_Museum_of_Art.jpg/300px-Claude_Monet_-_Water_Lilies_-_1919%2C_Metropolitan_Museum_of_Art.jpg", nominated: false, biddingType: null },
+                    { title: "The Kiss", author: "Gustav Klimt", year: "1908", type: "Art Nouveau", region: "europe", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg/300px-The_Kiss_-_Gustav_Klimt_-_Google_Cultural_Institute.jpg", nominated: false, biddingType: null }
                 ];
             }
 
@@ -410,14 +729,173 @@
                 return null;
             }
 
-            initializeBiddingData() {
-                this.biddingData = this.paintings.map((painting, index) => ({
+            initializeBiddingData(biddingPaintings) {
+                this.biddingData = biddingPaintings.map((painting, index) => ({
                     paintingId: index,
-                    currentBid: 2.5,
+                    currentBid: painting.biddingType === BIDDING_TYPES.DUTCH ? 5.0 : 2.5,
                     currentTeam: index % 3,
-                    timeRemaining: 15.750,
-                    isActive: true
+                    timeRemaining: this.getInitialTime(painting.biddingType),
+                    isActive: true,
+                    biddingType: painting.biddingType,
+                    blindBids: [],
+                    sealedBids: []
                 }));
+            }
+
+            getInitialTime(biddingType) {
+                switch (biddingType) {
+                    case BIDDING_TYPES.ENGLISH: return 15.750;
+                    case BIDDING_TYPES.DUTCH: return 15.750;
+                    case BIDDING_TYPES.BLIND: return 30.000;
+                    case BIDDING_TYPES.SEALED: return 60.000;
+                    default: return 15.750;
+                }
+            }
+
+            handleDutchAccept(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const acceptButton = card.querySelector('.accept-button');
+                const currentBidElement = card.querySelector('.current-bid-amount');
+
+                acceptButton.textContent = 'SOLD!';
+                acceptButton.disabled = true;
+                acceptButton.style.background = '#4CAF50';
+
+                this.endBidding(card);
+            }
+
+            handleBlindBid(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const input = card.querySelector('.blind-bid-input');
+                const bidAmount = parseFloat(input.value);
+
+                if (bidAmount && bidAmount > 0) {
+                    bidData.blindBids.push({
+                        amount: bidAmount,
+                        player: `Player ${bidData.blindBids.length + 1}`
+                    });
+
+                    const bidsCountElement = card.querySelector('.current-bid-amount');
+                    bidsCountElement.textContent = bidData.blindBids.length.toString();
+
+                    input.value = '';
+                    input.placeholder = 'Bid submitted!';
+
+                    setTimeout(() => {
+                        input.placeholder = 'Your bid';
+                    }, 2000);
+                }
+            }
+
+            handleSealedBid(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const input = card.querySelector('.sealed-bid-input');
+                const bidAmount = parseFloat(input.value);
+
+                if (bidAmount && bidAmount > 0) {
+                    bidData.sealedBids.push({
+                        amount: bidAmount,
+                        player: `Player ${bidData.sealedBids.length + 1}`
+                    });
+
+                    input.value = '';
+                    input.placeholder = 'Bid sealed!';
+                    input.disabled = true;
+
+                    const submitBtn = card.querySelector('.submit-sealed-bid');
+                    submitBtn.textContent = 'Sealed';
+                    submitBtn.disabled = true;
+                    submitBtn.style.background = '#4CAF50';
+                }
+            }
+
+            startDutchTimer(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const timerNumber = card.querySelector('.timer-number');
+                const currentBidElement = card.querySelector('.current-bid-amount');
+
+                const timer = setInterval(() => {
+                    bidData.timeRemaining -= 0.001;
+                    bidData.currentBid -= 0.01; // Price decreases over time
+
+                    if (bidData.timeRemaining <= 0 || bidData.currentBid <= 0.5) {
+                        clearInterval(timer);
+                        bidData.timeRemaining = 0;
+                        bidData.currentBid = Math.max(0.5, bidData.currentBid);
+                        this.endBidding(card);
+                    }
+
+                    timerNumber.textContent = bidData.timeRemaining.toFixed(3);
+                    currentBidElement.textContent = `$${bidData.currentBid.toFixed(1)}M`;
+                }, 1);
+
+                card.dataset.timerId = timer;
+            }
+
+            startBlindTimer(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const timerNumber = card.querySelector('.timer-number');
+
+                const timer = setInterval(() => {
+                    bidData.timeRemaining -= 0.001;
+
+                    if (bidData.timeRemaining <= 0) {
+                        clearInterval(timer);
+                        bidData.timeRemaining = 0;
+                        this.endBlindBidding(card, paintingIndex);
+                    }
+
+                    timerNumber.textContent = bidData.timeRemaining.toFixed(3);
+                }, 1);
+
+                card.dataset.timerId = timer;
+            }
+
+            startSealedTimer(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const timerNumber = card.querySelector('.timer-number');
+
+                const timer = setInterval(() => {
+                    bidData.timeRemaining -= 0.001;
+
+                    if (bidData.timeRemaining <= 0) {
+                        clearInterval(timer);
+                        bidData.timeRemaining = 0;
+                        this.endSealedBidding(card, paintingIndex);
+                    }
+
+                    timerNumber.textContent = bidData.timeRemaining.toFixed(3);
+                }, 1);
+
+                card.dataset.timerId = timer;
+            }
+
+            endBlindBidding(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const bidsCountElement = card.querySelector('.current-bid-amount');
+
+                if (bidData.blindBids.length > 0) {
+                    const winningBid = Math.max(...bidData.blindBids.map(b => b.amount));
+                    bidsCountElement.textContent = `Winner: $${winningBid.toFixed(1)}M`;
+                } else {
+                    bidsCountElement.textContent = 'No bids';
+                }
+
+                this.endBidding(card);
+            }
+
+            endSealedBidding(card, paintingIndex) {
+                const bidData = this.biddingData[paintingIndex];
+                const bidsCountElement = card.querySelector('.current-bid-amount');
+
+                if (bidData.sealedBids.length > 0) {
+                    const winningBid = Math.max(...bidData.sealedBids.map(b => b.amount));
+                    bidsCountElement.textContent = `Winner: $${winningBid.toFixed(1)}M`;
+                } else {
+                    bidsCountElement.textContent = 'No bids';
+                }
+
+                this.endBidding(card);
             }
 
             getCurrentTeamColor(paintingIndex) {
@@ -437,87 +915,535 @@
                 const container = document.getElementById('paintingsContainer');
                 if (!container) return;
 
-                if (gamePhase === 'bidding') this.initializeBiddingData();
-
-                if (this.paintings.length === 0) {
-                    container.innerHTML = '<div class="error">No paintings found.</div>';
-                    return;
+                if (gamePhase === 'nomination') {
+                    this.renderNominationPhase(container);
+                } else if (gamePhase === 'bidding') {
+                    this.renderBiddingPhase(container);
+                } else {
+                    container.innerHTML = '<div class="loading">Select a game phase to continue...</div>';
                 }
+            }
 
+            renderNominationPhase(container) {
+                // Create paintings grid (2x smaller)
                 const grid = document.createElement('div');
                 grid.className = 'paintings-grid';
+                grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(125px, 1fr))';
+                grid.style.overflow = 'visible';
 
-                this.paintings.forEach((painting, index) => {
+                const startIndex = currentPage * paintingsPerPage;
+                const endIndex = Math.min(startIndex + paintingsPerPage, allPaintings.length);
+                const currentPagePaintings = allPaintings.slice(startIndex, endIndex);
+
+                currentPagePaintings.forEach((painting, index) => {
+                    const globalIndex = startIndex + index;
                     const card = document.createElement('div');
-                    card.className = 'painting-card';
-                    card.style.borderColor = this.regionColors[painting.region] || '#fff';
+                    card.className = 'painting-card nomination-card';
+                    card.style.cssText = `
+                        border: 2px solid ${this.regionColors[painting.region] || '#fff'};
+                        padding: 8px;
+                        background: rgba(17, 17, 17, 0.9);
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+                        position: relative;
+                        overflow: visible;
+                        ${painting.nominated ? 'box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); border-color: #00ff00;' : ''}
+                    `;
 
-                    if (gamePhase === 'bidding') {
-                        card.className = 'painting-card wrapper svelte-1pd0inp';
-                        card.innerHTML = `
-                            <div class="center svelte-1pd0inp">
-                                <div class="script svelte-1pd0inp">
-                                    <h1 class="svelte-1pd0inp">${painting.title}</h1>
-                                    <div class="detail svelte-1pd0inp">${painting.author} | ${painting.year}</div>
-                                    <div class="detail svelte-1pd0inp">${painting.type}</div>
-                                    <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
-                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: auto; object-fit: contain; margin: 10px 0; max-height: 300px; min-height: 120px;">
-                                    <div class="painting-meters svelte-1pd0inp">
-                                        ${this.generateCityMeters(painting, index)}
-                                    </div>
-                                </div>
+                    card.innerHTML = `
+                        <div class="painting-title" style="font-size: 0.9em; margin-bottom: 3px;">${painting.title}</div>
+                        <div class="painting-author" style="font-size: 0.7em; color: #ccc; margin-bottom: 3px;">${painting.author} | ${painting.year}</div>
+                        <div class="painting-type" style="font-size: 0.6em; color: #999; margin-bottom: 5px;">${painting.type}</div>
+                        <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
+                             style="width: 100%; height: auto; object-fit: contain; margin-bottom: 5px; max-height: 75px; min-height: 30px;"
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
+                        
+                        <!-- Gradient boxes (2x smaller) -->
+                        <div class="painting-meters-small" style="margin: 3px 0;">
+                            ${this.generateCityMetersSmall(painting, globalIndex)}
+                        </div>
+                        
+                        ${painting.nominated ? `
+                            <div style="position: absolute; top: 5px; right: 5px; background: #00ff00; color: #000; padding: 2px 6px; font-size: 10px; font-weight: bold; border-radius: 3px;">
+                                ${painting.biddingType?.toUpperCase() || 'NOMINATED'}
                             </div>
-                            <div class="left svelte-1pd0inp">
-                                <div class="bids svelte-1pd0inp" data-painting-id="${index}">
-                                    <button class="bid-button" data-painting-id="${index}">
-                                        <div class="bid-button-text">Bid</div>
-                                        <div class="bid-button-amount">$3.0M</div>
-                                    </button>
-                                    <div class="bid-display svelte-1nlw3im" style="background-color: ${this.getCurrentTeamColorRGBA(index, 0.1)}; border: 3px solid ${this.getCurrentTeamColor(index)};" data-painting-id="${index}">
-                                        <div class="timer-section">
-                                            <div class="timer-number">15.750</div>
-                                            <div class="timer-text">Sec. remaining</div>
-                                        </div>
-                                        <div class="bid-info">
-                                            <div class="current-bid-label">Current bid:</div>
-                                            <div class="current-bid-amount">$2.5M</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                            <button class="remove-nomination-btn" data-index="${globalIndex}" 
+                                    style="width: 100%; padding: 4px; font-size: 9px; background: #f44336; color: white; border: none; cursor: pointer; border-radius: 2px; margin-top: 4px;">Remove</button>
+                        ` : ''}
+                        
 
-                        const bidButton = card.querySelector('.bid-button');
-                        if (bidButton) {
-                            bidButton.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                this.handleBidClick(card, index);
-                            });
-                        }
+                    `;
 
-                        this.startBiddingTimer(card, index);
+                    // Create dropdown element that will appear under this card
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'painting-dropdown';
+                    dropdown.style.cssText = `
+                        display: none;
+                        position: fixed;
+                        background: #fff;
+                        border: 1px solid #ccc;
+                        z-index: 99999;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+                    `;
+                    dropdown.innerHTML = `
+                        <select style="background-color: #fff; color: #000; padding: 8px; border: none; border-radius: 0; font-size: 12px; width: 100%; box-sizing: border-box;">
+                            <option value="">Select Bidding Type</option>
+                            <option value="english">English Auction</option>
+                            <option value="dutch">Dutch Auction</option>
+                            <option value="blind">Blind Auction</option>
+                            <option value="sealed">Sealed Bid</option>
+                        </select>
+                    `;
 
-                        card.addEventListener('click', (e) => {
-                            if (!e.target.closest('.bid-button') && !e.target.closest('.bid-display')) {
+                    // Add main click handler for the painting card
+                    card.addEventListener('click', (e) => {
+                        if (!e.target.closest('.remove-nomination-btn') && !e.target.closest('.painting-dropdown')) {
+                            if (!painting.nominated) {
+                                // Hide all other dropdowns first
+                                document.querySelectorAll('.painting-dropdown').forEach(d => {
+                                    if (d !== dropdown) d.style.display = 'none';
+                                });
+
+                                // Position dropdown using fixed positioning relative to viewport
+                                const cardRect = card.getBoundingClientRect();
+
+                                dropdown.style.position = 'fixed';
+                                dropdown.style.left = cardRect.left + 'px';
+                                dropdown.style.top = (cardRect.bottom + 2) + 'px';
+                                dropdown.style.width = cardRect.width + 'px';
+                                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                            } else {
+                                // Show painting details for nominated paintings
                                 this.showPaintingDetails(painting);
                             }
+                        }
+                    });
+
+                    // Add dropdown functionality
+                    const select = dropdown.querySelector('select');
+                    select.addEventListener('change', (e) => {
+                        const biddingType = e.target.value;
+                        if (biddingType) {
+                            this.nominatePainting(globalIndex, biddingType);
+
+                            // Hide the dropdown and reset
+                            dropdown.style.display = 'none';
+                            select.value = '';
+                        }
+                    });
+
+                    // Append dropdown to document body (not inside any container)
+                    document.body.appendChild(dropdown);
+
+
+
+                    const removeBtn = card.querySelector('.remove-nomination-btn');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            this.removeNomination(globalIndex);
                         });
-                    } else {
-                        card.innerHTML = `
-                            <div class="painting-title title-font">${painting.title}</div>
-                            <div class="painting-author">${painting.author} | ${painting.year}</div>
-                            <div class="painting-type">${painting.type}</div>
-                            <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='">
-                        `;
-                        card.addEventListener('click', () => this.showPaintingDetails(painting));
                     }
 
                     grid.appendChild(card);
                 });
 
+                // Create controls underneath
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'nomination-controls';
+                controlsDiv.style.cssText = `
+                    background: rgba(0, 0, 0, 0.8);
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 15px;
+                `;
+
+                const totalPages = Math.ceil(allPaintings.length / paintingsPerPage);
+
+                controlsDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="color: #fff; font-size: 12px;">Per page:</label>
+                        <input type="number" id="paintingsPerPageInput" value="${paintingsPerPage}" min="4" max="100" 
+                               style="width: 60px; padding: 4px; background: #333; color: #fff; border: 1px solid #666; border-radius: 4px;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button id="prevPageBtn" style="padding: 6px 12px; background: #555; color: #fff; border: none; cursor: pointer; border-radius: 4px;">◀</button>
+                        <span style="color: #fff; font-size: 12px;">Page ${currentPage + 1} of ${totalPages}</span>
+                        <button id="nextPageBtn" style="padding: 6px 12px; background: #555; color: #fff; border: none; cursor: pointer; border-radius: 4px;">▶</button>
+                    </div>
+                    <div style="color: #ccc; font-size: 12px;">
+                        <strong>Nominated: ${nominatedPaintings.length} paintings</strong>
+                    </div>
+                `;
+
                 container.innerHTML = '';
                 container.appendChild(grid);
+                container.appendChild(controlsDiv);
+
+                // Add floating dropdown functionality
+                const floatingSelect = floatingDropdown.querySelector('select');
+
+                floatingSelect.addEventListener('change', (e) => {
+                    const biddingType = e.target.value;
+                    if (biddingType) {
+                        const paintingIndex = parseInt(floatingDropdown.dataset.paintingIndex);
+                        this.nominatePainting(paintingIndex, biddingType);
+
+                        // Hide the floating dropdown and reset
+                        floatingDropdown.style.display = 'none';
+                        floatingSelect.value = '';
+                    }
+                });
+
+                // Add event listeners for controls
+                document.getElementById('paintingsPerPageInput').addEventListener('change', (e) => {
+                    paintingsPerPage = Math.max(4, Math.min(100, parseInt(e.target.value) || 30));
+                    currentPage = 0;
+                    this.renderPaintings();
+                });
+
+                document.getElementById('prevPageBtn').addEventListener('click', () => {
+                    if (currentPage > 0) {
+                        currentPage--;
+                        this.renderPaintings();
+                    }
+                });
+
+                document.getElementById('nextPageBtn').addEventListener('click', () => {
+                    const totalPages = Math.ceil(allPaintings.length / paintingsPerPage);
+                    if (currentPage < totalPages - 1) {
+                        currentPage++;
+                        this.renderPaintings();
+                    }
+                });
+
+                // Close dropdowns when clicking outside
+                setTimeout(() => {
+                    document.addEventListener('click', (e) => {
+                        if (!e.target.closest('.painting-dropdown') && !e.target.closest('.nomination-card')) {
+                            document.querySelectorAll('.painting-dropdown').forEach(dropdown => {
+                                dropdown.style.display = 'none';
+                                const select = dropdown.querySelector('select');
+                                if (select) select.value = '';
+                            });
+                        }
+                    });
+                }, 100);
+            }
+
+            renderBiddingPhase(container) {
+                // Only show nominated paintings in bidding phase
+                const biddingPaintings = allPaintings.filter(p => p.nominated);
+
+                if (biddingPaintings.length === 0) {
+                    container.innerHTML = '<div class="error">No paintings nominated for bidding. Please go back to nomination phase.</div>';
+                    return;
+                }
+
+                this.initializeBiddingData(biddingPaintings);
+
+                const grid = document.createElement('div');
+                grid.className = 'paintings-grid';
+
+                biddingPaintings.forEach((painting, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'painting-card wrapper svelte-1pd0inp';
+                    card.style.borderColor = this.regionColors[painting.region] || '#fff';
+
+                    const biddingTypeDisplay = this.getBiddingTypeDisplay(painting.biddingType);
+
+                    card.innerHTML = `
+                        <div class="center svelte-1pd0inp">
+                            <div class="script svelte-1pd0inp">
+                                <h1 class="svelte-1pd0inp">${painting.title}</h1>
+                                <div class="detail svelte-1pd0inp">${painting.author} | ${painting.year}</div>
+                                <div class="detail svelte-1pd0inp">${painting.type}</div>
+                                <div class="bidding-type-badge" style="background: ${biddingTypeDisplay.color}; color: white; padding: 4px 8px; font-size: 10px; border-radius: 4px; margin: 5px 0; display: inline-block;">
+                                    ${biddingTypeDisplay.name}
+                                </div>
+                                <img class="painting-image" src="${painting.image}" alt="${painting.title}" 
+                                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='" style="width: 100%; height: auto; object-fit: contain; margin: 10px 0; max-height: 300px; min-height: 120px;">
+                                <div class="painting-meters svelte-1pd0inp">
+                                    ${this.generateCityMeters(painting, index)}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="left svelte-1pd0inp">
+                            ${this.generateBiddingInterface(painting, index)}
+                        </div>
+                    `;
+
+                    this.attachBiddingEventListeners(card, painting, index);
+                    grid.appendChild(card);
+                });
+
+                container.innerHTML = '';
+                container.appendChild(grid);
+            }
+
+            nominatePainting(paintingIndex, biddingType) {
+                const painting = allPaintings[paintingIndex];
+                if (!painting.nominated) {
+                    painting.nominated = true;
+                    painting.biddingType = biddingType;
+                    nominatedPaintings.push(painting);
+                    this.renderPaintings();
+                }
+            }
+
+            removeNomination(paintingIndex) {
+                const painting = allPaintings[paintingIndex];
+                if (painting.nominated) {
+                    painting.nominated = false;
+                    painting.biddingType = null;
+                    const nomIndex = nominatedPaintings.findIndex(p => p === painting);
+                    if (nomIndex > -1) {
+                        nominatedPaintings.splice(nomIndex, 1);
+                    }
+                    this.renderPaintings();
+                }
+            }
+
+            getBiddingTypeDisplay(biddingType) {
+                const displays = {
+                    [BIDDING_TYPES.ENGLISH]: { name: 'English Auction', color: '#4CAF50' },
+                    [BIDDING_TYPES.DUTCH]: { name: 'Dutch Auction', color: '#FF9800' },
+                    [BIDDING_TYPES.BLIND]: { name: 'Blind Auction', color: '#9C27B0' },
+                    [BIDDING_TYPES.SEALED]: { name: 'Sealed Bid', color: '#607D8B' }
+                };
+                return displays[biddingType] || { name: 'Unknown', color: '#666' };
+            }
+
+            generateBiddingInterface(painting, index) {
+                switch (painting.biddingType) {
+                    case BIDDING_TYPES.ENGLISH:
+                        return this.generateEnglishAuctionInterface(painting, index);
+                    case BIDDING_TYPES.DUTCH:
+                        return this.generateDutchAuctionInterface(painting, index);
+                    case BIDDING_TYPES.BLIND:
+                        return this.generateBlindAuctionInterface(painting, index);
+                    case BIDDING_TYPES.SEALED:
+                        return this.generateSealedBidInterface(painting, index);
+                    default:
+                        return '<div>Unknown bidding type</div>';
+                }
+            }
+
+            generateEnglishAuctionInterface(painting, index) {
+                return `
+                    <div class="bids svelte-1pd0inp" data-painting-id="${index}">
+                        <button class="bid-button" data-painting-id="${index}">
+                            <div class="bid-button-text">Bid</div>
+                            <div class="bid-button-amount">$3.0M</div>
+                        </button>
+                        <div class="bid-display svelte-1nlw3im" style="background-color: ${this.getCurrentTeamColorRGBA(index, 0.1)}; border: 3px solid ${this.getCurrentTeamColor(index)};" data-painting-id="${index}">
+                            <div class="timer-section">
+                                <div class="timer-number">15.750</div>
+                                <div class="timer-text">Sec. remaining</div>
+                            </div>
+                            <div class="bid-info">
+                                <div class="current-bid-label">Current bid:</div>
+                                <div class="current-bid-amount">$2.5M</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateDutchAuctionInterface(painting, index) {
+                return `
+                    <div class="bids svelte-1pd0inp dutch-auction" data-painting-id="${index}">
+                        <button class="accept-button" data-painting-id="${index}" style="background: #FF9800; color: white; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold;">
+                            Accept Current Price
+                        </button>
+                        <div class="bid-display svelte-1nlw3im" style="background-color: rgba(255, 152, 0, 0.1); border: 3px solid #FF9800;" data-painting-id="${index}">
+                            <div class="timer-section">
+                                <div class="timer-number">15.750</div>
+                                <div class="timer-text">Sec. remaining</div>
+                            </div>
+                            <div class="bid-info">
+                                <div class="current-bid-label">Current price:</div>
+                                <div class="current-bid-amount">$5.0M</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateBlindAuctionInterface(painting, index) {
+                return `
+                    <div class="bids svelte-1pd0inp blind-auction" data-painting-id="${index}">
+                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <input type="number" class="blind-bid-input" placeholder="Your bid" step="0.1" min="0.1" 
+                                   style="flex: 1; padding: 6px; background: #333; color: #fff; border: 1px solid #666;">
+                            <button class="submit-blind-bid" data-painting-id="${index}" style="background: #9C27B0; color: white; border: none; padding: 6px 12px; cursor: pointer;">
+                                Submit
+                            </button>
+                        </div>
+                        <div class="bid-display svelte-1nlw3im" style="background-color: rgba(156, 39, 176, 0.1); border: 3px solid #9C27B0;" data-painting-id="${index}">
+                            <div class="timer-section">
+                                <div class="timer-number">30.000</div>
+                                <div class="timer-text">Sec. remaining</div>
+                            </div>
+                            <div class="bid-info">
+                                <div class="current-bid-label">Bids submitted:</div>
+                                <div class="current-bid-amount">0</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateSealedBidInterface(painting, index) {
+                return `
+                    <div class="bids svelte-1pd0inp sealed-auction" data-painting-id="${index}">
+                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <input type="number" class="sealed-bid-input" placeholder="Your sealed bid" step="0.1" min="0.1" 
+                                   style="flex: 1; padding: 6px; background: #333; color: #fff; border: 1px solid #666;">
+                            <button class="submit-sealed-bid" data-painting-id="${index}" style="background: #607D8B; color: white; border: none; padding: 6px 12px; cursor: pointer;">
+                                Seal Bid
+                            </button>
+                        </div>
+                        <div class="bid-display svelte-1nlw3im" style="background-color: rgba(96, 125, 139, 0.1); border: 3px solid #607D8B;" data-painting-id="${index}">
+                            <div class="timer-section">
+                                <div class="timer-number">60.000</div>
+                                <div class="timer-text">Sec. remaining</div>
+                            </div>
+                            <div class="bid-info">
+                                <div class="current-bid-label">Sealed bids:</div>
+                                <div class="current-bid-amount">Hidden</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            attachBiddingEventListeners(card, painting, index) {
+                // English auction
+                const bidButton = card.querySelector('.bid-button');
+                if (bidButton) {
+                    bidButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleBidClick(card, index);
+                    });
+                    this.startBiddingTimer(card, index);
+                }
+
+                // Dutch auction
+                const acceptButton = card.querySelector('.accept-button');
+                if (acceptButton) {
+                    acceptButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleDutchAccept(card, index);
+                    });
+                    this.startDutchTimer(card, index);
+                }
+
+                // Blind auction
+                const submitBlindBtn = card.querySelector('.submit-blind-bid');
+                if (submitBlindBtn) {
+                    submitBlindBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleBlindBid(card, index);
+                    });
+                    this.startBlindTimer(card, index);
+                }
+
+                // Sealed auction
+                const submitSealedBtn = card.querySelector('.submit-sealed-bid');
+                if (submitSealedBtn) {
+                    submitSealedBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleSealedBid(card, index);
+                    });
+                    this.startSealedTimer(card, index);
+                }
+
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('button') && !e.target.closest('input')) {
+                        this.showPaintingDetails(painting);
+                    }
+                });
+            }
+
+            generateCityMetersSmall(painting, index) {
+                const cityOffsets = {
+                    'darkred': [0, 3, 0, 4, 0, 2, 1, 1, 3, 4, 2, 3],
+                    'red': [0, 2, 0, 2, 2, 2, 2, 2, 4, 4, 1, 4],
+                    'cyan': [0, 2, 0, 1, 1, 4, 1, 1, 4, 1, 1, 3],
+                    'orange': [0, 4, 3, 2, 2, 2, 0, 4, 4, 0, 2, 3],
+                    'yellow': [1, 4, 0, 2, 4, 2, 2, 1, 3, 1, 0, 2],
+                    'blue': [1, 3, 0, 2, 1, 3, 4, 1, 4, 2, 1, 4],
+                    'lime': [0, 4, 1, 4, 3, 2, 1, 2, 3, 1, 4, 3],
+                    'magenta': [5, 1, 5, 2, 0, 3, 3, 2, 2, 0, 2, 1]
+                };
+
+                const cities = ['cai', 'cpt', 'dxb', 'jak', 'lag', 'ldn', 'mxc', 'mum', 'nyc', 'sao', 'syd', 'tyo'];
+                const regionColor = this.regionColors[painting.region] || 'blue';
+                const harmonyColor = regionColor;
+
+                // Show only first 6 rows for small version
+                return Array.from({ length: 6 }, (_, i) => {
+                    const cityForThisRow = cities[i];
+                    let position;
+
+                    if (cityOffsets[harmonyColor] && Array.isArray(cityOffsets[harmonyColor])) {
+                        const offset = cityOffsets[harmonyColor][i] || 0;
+                        if (harmonyColor === 'magenta') {
+                            position = offset;
+                        } else {
+                            const baseNumber = index % 6;
+                            position = baseNumber + offset;
+                        }
+                        position = Math.max(0, Math.min(9, position));
+                    } else {
+                        position = index % 10;
+                    }
+
+                    const minValue = 0;
+                    const maxValue = 9;
+                    const cityValue = position;
+                    const cityCenterValue = cityValue + 0.5;
+                    const maxBlocksLeft = cityValue;
+                    const maxBlocksRight = maxValue - cityValue;
+                    const maxBlocks = Math.min(maxBlocksLeft, maxBlocksRight);
+                    const minReliability = 0.5;
+                    const additionalBlocks = Math.floor(Math.random() * (maxBlocks + 1));
+                    const reliability = minReliability + additionalBlocks;
+                    const reliabilityStartPos = Math.max(minValue, cityCenterValue - reliability);
+                    const reliabilityEndPos = Math.min(maxValue + 1, cityCenterValue + reliability);
+
+                    return `
+                        <div class="painting-meter-row-small" style="display: flex; height: 8px; margin: 1px 0;">
+                            <div class="painting-meter-sections-small" style="display: flex; width: 100%; position: relative;">
+                                ${Array.from({ length: 10 }, (_, j) => {
+                        let sectionClass = 'painting-meter-section-small';
+                        let bgColor = j > position ? 'rgba(25, 25, 25, 0.9)' : 'transparent';
+
+                        if (j === position) {
+                            bgColor = this.regionColors[painting.region] || '#fff';
+                        }
+
+                        return `<div class="${sectionClass}" style="flex: 1; background: ${bgColor}; border-right: 1px solid #333;"></div>`;
+                    }).join('')}
+                                <div class="painting-reliability-overlay-small" style="
+                                    position: absolute;
+                                    top: 0;
+                                    left: ${reliabilityStartPos * 10}%;
+                                    width: ${(reliabilityEndPos - reliabilityStartPos) * 10}%;
+                                    height: 100%;
+                                    background: linear-gradient(90deg, transparent 1%, rgba(255,255,255,0.3) 25%, rgba(255,255,255,0.3) 75%, transparent 99%);
+                                    pointer-events: none;
+                                "></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
 
             generateCityMeters(painting, index) {
@@ -564,18 +1490,20 @@
                     const maxValue = 9;
                     const cityValue = position;
                     const cityCenterValue = cityValue + 0.5; // Center of the city block
-                    
+
                     // Calculate how many full blocks we can extend in each direction
-                    const maxBlocksLeft = Math.floor(cityCenterValue - minValue);
-                    const maxBlocksRight = Math.floor((maxValue + 1) - cityCenterValue);
-                    const maxBlocks = Math.min(maxBlocksLeft, maxBlocksRight); // No artificial cap
-                    
+                    // For left: how many blocks from city center to the left edge (including partial blocks)
+                    const maxBlocksLeft = cityValue; // Can extend to blocks 0, 1, 2, ... cityValue-1
+                    // For right: how many blocks from city center to the right edge (including partial blocks)  
+                    const maxBlocksRight = maxValue - cityValue; // Can extend to blocks cityValue+1, ... maxValue
+                    const maxBlocks = Math.min(maxBlocksLeft, maxBlocksRight); // Symmetric extension
+
                     // Minimum reliability is 0.5 (covers the full city block)
                     // Then randomly extend to 1.5, 2.5, 3.5, etc. (to block boundaries)
                     const minReliability = 0.5;
-                    const additionalBlocks = Math.floor(Math.random() * maxBlocks); // 0, 1, 2, or 3 additional blocks
-                    const reliability = minReliability + additionalBlocks; // 0.5, 1.5, 2.5, or 3.5
-                    
+                    const additionalBlocks = Math.floor(Math.random() * (maxBlocks + 1)); // 0, 1, 2, 3, or 4 additional blocks
+                    const reliability = minReliability + additionalBlocks; // 0.5, 1.5, 2.5, 3.5, or 4.5
+
                     const reliabilityStartPos = Math.max(minValue, cityCenterValue - reliability);
                     const reliabilityEndPos = Math.min(maxValue + 1, cityCenterValue + reliability);
 
@@ -583,18 +1511,18 @@
                         <div class="painting-meter-row svelte-1pd0inp">
                             <div class="painting-meter-sections svelte-1pd0inp">
                                 ${Array.from({ length: 10 }, (_, j) => {
-                                    let sectionClass = 'painting-meter-section svelte-1pd0inp';
-                                    let sectionContent = '';
-                                    
-                                    if (j === position) {
-                                        sectionClass += ' city-section';
-                                        sectionContent = cityForThisRow.toUpperCase();
-                                    } else if (j > position) {
-                                        sectionClass += ' after-city';
-                                    }
-                                    
-                                    return `<div class="${sectionClass}" data-city="${cityForThisRow.toUpperCase()}">${sectionContent}</div>`;
-                                }).join('')}
+                        let sectionClass = 'painting-meter-section svelte-1pd0inp';
+                        let sectionContent = '';
+
+                        if (j === position) {
+                            sectionClass += ' city-section';
+                            sectionContent = cityForThisRow.toUpperCase();
+                        } else if (j > position) {
+                            sectionClass += ' after-city';
+                        }
+
+                        return `<div class="${sectionClass}" data-city="${cityForThisRow.toUpperCase()}">${sectionContent}</div>`;
+                    }).join('')}
                                 <div class="painting-reliability-overlay" style="
                                     position: absolute;
                                     top: 0;
@@ -699,6 +1627,12 @@
 
         function setGamePhase(phase) {
             if (phase === 'travel') travelCount = 0;
+            if (phase === 'nomination') {
+                // Reset to show all paintings for nomination
+                if (window.game) {
+                    window.game.paintings = [...allPaintings];
+                }
+            }
             gamePhase = phase;
             if (window.game) {
                 window.game.updateUI();
@@ -710,8 +1644,21 @@
             currentRound = 1;
             travelCount = 0;
             playerCountries = { player1: [], player2: [] };
+            nominatedPaintings = [];
+            currentPage = 0;
             gamePhase = 'nomination';
-            if (window.game) window.game.updateUI();
+
+            // Reset all paintings nomination status
+            allPaintings.forEach(painting => {
+                painting.nominated = false;
+                painting.biddingType = null;
+            });
+
+            if (window.game) {
+                window.game.paintings = [...allPaintings];
+                window.game.updateUI();
+                window.game.renderPaintings();
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -743,5 +1690,6 @@
         });
     </script>
 </body>
+
 </html>
-                    '
+'
