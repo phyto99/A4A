@@ -448,7 +448,40 @@
                     'north america': 'blue', 'south america': 'red', 'oceania': 'lime',
                     'europe': 'cyan', 'africa': 'yellow', 'south asia': 'orange', 'east asia': 'darkred'
                 };
+                this.setupEventDelegation();
                 this.init();
+            }
+
+            setupEventDelegation() {
+                // Set up event delegation for pagination controls
+                document.addEventListener('click', (e) => {
+                    if (e.target.id === 'prevPageBtn') {
+                        console.log('Previous button clicked, currentPage:', currentPage);
+                        if (currentPage > 0) {
+                            currentPage--;
+                            console.log('Moving to page:', currentPage);
+                            this.renderPaintings();
+                        }
+                    } else if (e.target.id === 'nextPageBtn') {
+                        const totalPages = Math.ceil(this.paintings.length / paintingsPerPage);
+                        console.log('Next button clicked, currentPage:', currentPage, 'totalPages:', totalPages, 'paintings length:', this.paintings.length);
+                        if (currentPage < totalPages - 1) {
+                            currentPage++;
+                            console.log('Moving to page:', currentPage);
+                            this.renderPaintings();
+                        } else {
+                            console.log('Already on last page');
+                        }
+                    }
+                });
+
+                document.addEventListener('change', (e) => {
+                    if (e.target.id === 'paintingsPerPageInput') {
+                        paintingsPerPage = Math.max(4, Math.min(100, parseInt(e.target.value) || 30));
+                        currentPage = 0;
+                        this.renderPaintings();
+                    }
+                });
             }
 
             async init() {
@@ -627,26 +660,45 @@
                         return;
                     }
 
-                    const url = `https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_ID}`;
-                    const response = await fetch(url, {
-                        headers: {
-                            'Authorization': `Bearer ${AIRTABLE_CONFIG.TOKEN}`,
-                            'Content-Type': 'application/json'
+                    let allRecords = [];
+                    let offset = null;
+
+                    // Fetch all pages of data
+                    do {
+                        const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_CONFIG.BASE_ID}/${AIRTABLE_CONFIG.TABLE_ID}`);
+                        if (offset) {
+                            url.searchParams.append('offset', offset);
                         }
-                    });
 
-                    if (!response.ok) {
-                        throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
-                    }
+                        const response = await fetch(url, {
+                            headers: {
+                                'Authorization': `Bearer ${AIRTABLE_CONFIG.TOKEN}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
 
-                    const data = await response.json();
-                    if (!data.records || data.records.length === 0) {
+                        if (!response.ok) {
+                            throw new Error(`Airtable API error: ${response.status} ${response.statusText}`);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.records && data.records.length > 0) {
+                            allRecords = allRecords.concat(data.records);
+                        }
+
+                        // Check if there are more pages
+                        offset = data.offset || null;
+
+                    } while (offset);
+
+                    if (allRecords.length === 0) {
                         allPaintings = this.getFallbackPaintings();
                         this.paintings = [...allPaintings];
                         return;
                     }
 
-                    allPaintings = data.records.map(record => {
+                    allPaintings = allRecords.map(record => {
                         const fields = record.fields;
                         return {
                             id: record.id,
@@ -669,6 +721,7 @@
                         allPaintings = this.getFallbackPaintings();
                     }
 
+                    console.log(`Loaded ${allPaintings.length} paintings from Airtable`);
                     this.paintings = [...allPaintings];
                 } catch (error) {
                     console.error('Error fetching paintings from Airtable:', error);
@@ -932,8 +985,10 @@
                 grid.style.overflow = 'visible';
 
                 const startIndex = currentPage * paintingsPerPage;
-                const endIndex = Math.min(startIndex + paintingsPerPage, allPaintings.length);
-                const currentPagePaintings = allPaintings.slice(startIndex, endIndex);
+                const endIndex = Math.min(startIndex + paintingsPerPage, this.paintings.length);
+                const currentPagePaintings = this.paintings.slice(startIndex, endIndex);
+
+                console.log('Rendering page:', currentPage, 'startIndex:', startIndex, 'endIndex:', endIndex, 'showing:', currentPagePaintings.length, 'paintings');
 
                 currentPagePaintings.forEach((painting, index) => {
                     const globalIndex = startIndex + index;
@@ -1063,7 +1118,7 @@
                     gap: 15px;
                 `;
 
-                const totalPages = Math.ceil(allPaintings.length / paintingsPerPage);
+                const totalPages = Math.ceil(this.paintings.length / paintingsPerPage);
 
                 controlsDiv.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -1100,27 +1155,7 @@
                     }
                 });
 
-                // Add event listeners for controls
-                document.getElementById('paintingsPerPageInput').addEventListener('change', (e) => {
-                    paintingsPerPage = Math.max(4, Math.min(100, parseInt(e.target.value) || 30));
-                    currentPage = 0;
-                    this.renderPaintings();
-                });
-
-                document.getElementById('prevPageBtn').addEventListener('click', () => {
-                    if (currentPage > 0) {
-                        currentPage--;
-                        this.renderPaintings();
-                    }
-                });
-
-                document.getElementById('nextPageBtn').addEventListener('click', () => {
-                    const totalPages = Math.ceil(allPaintings.length / paintingsPerPage);
-                    if (currentPage < totalPages - 1) {
-                        currentPage++;
-                        this.renderPaintings();
-                    }
-                });
+                // Event listeners are now handled by event delegation in setupEventDelegation()
 
                 // Close dropdowns when clicking outside
                 setTimeout(() => {
