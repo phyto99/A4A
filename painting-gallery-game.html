@@ -334,6 +334,22 @@
         .painting-image {
             margin-bottom: 5px !important;
         }
+
+        /* Progress Ring Styles */
+        .progress-ring__circle.svelte-1gf06yk {
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .circle.svelte-1gf06yk {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            position: absolute;
+            width: 60px;
+            height: 60px;
+        }
     </style>
 </head>
 
@@ -343,7 +359,7 @@
             <div id="globeViz"></div>
         </div>
         <div class="content-overlay">
-            <header style="padding: 10px; background-color: rgba(40, 44, 52, 0.9); color: white; font-size: 12px;">
+            <header style="padding: 10px; background-color: #000; color: white; font-size: 12px;">
                 <div
                     style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                     <div style="display: flex; gap: 15px; align-items: center;">
@@ -380,10 +396,28 @@
                             </div>
                         </div>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 11px; color: #ccc;" id="gameStatus">
-                            <div id="roundStatus">1 / 3 rounds of nominate, auction</div>
-                            <div id="stageStatus">1/3 nomination - next stage: bidding</div>
+
+                    <!-- Progress Timer in Header -->
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div style="position: relative; width: 60px; height: 60px;">
+                            <div class="circle svelte-1gf06yk" id="progressCircle">
+                                <svg width="60" height="60">
+                                    <circle class="progress-ring__circle svelte-1gf06yk" stroke="white" stroke-width="2"
+                                        fill="transparent" r="26" cx="30" cy="30" id="progressRing" />
+                                </svg>
+                            </div>
+                            <div class="progress-content"
+                                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; font-size: 8px; pointer-events: none;">
+                                <div id="currentPhase" style="font-weight: bold; margin-bottom: 1px;">NOMINATION</div>
+                                <div id="timerDisplay" style="font-size: 10px;">100</div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; color: #ccc;" id="gameStatus">
+                                <div id="roundStatus">1 / 3 rounds of nominate, auction</div>
+                                <div id="stageStatus">1/3 nomination - next stage: bidding</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -448,6 +482,9 @@
                     'north america': 'blue', 'south america': 'red', 'oceania': 'lime',
                     'europe': 'cyan', 'africa': 'yellow', 'south asia': 'orange', 'east asia': 'darkred'
                 };
+                this.timerDuration = 30; // 30 seconds
+                this.currentTime = this.timerDuration;
+                this.timerInterval = null;
                 this.setupEventDelegation();
                 this.init();
             }
@@ -489,6 +526,7 @@
                 await this.fetchPaintings();
                 this.renderPaintings();
                 this.updateUI();
+                this.initProgressTimer();
             }
 
             async initGlobe() {
@@ -650,6 +688,81 @@
                 }
 
                 stageStatus.textContent = `${stageText} - next stage: ${nextStage}`;
+            }
+
+            initProgressTimer() {
+                const progressRing = document.getElementById('progressRing');
+                if (progressRing) {
+                    const radius = progressRing.r.baseVal.value;
+                    const circumference = radius * 2 * Math.PI;
+                    progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+                    progressRing.style.strokeDashoffset = circumference; // Start with full offset (empty circle)
+                    console.log('Progress ring initialized:', { radius, circumference });
+                }
+
+                this.startTimer();
+            }
+
+            startTimer() {
+                console.log('Starting smooth timer...');
+                this.startTime = Date.now();
+                this.timerDuration = 100; // 100 seconds
+                this.animationRunning = true;
+
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                }
+
+                // Use requestAnimationFrame for smooth continuous animation
+                const animate = () => {
+                    if (!this.animationRunning) return;
+
+                    const elapsed = (Date.now() - this.startTime) / 1000; // seconds elapsed
+                    this.currentTime = Math.max(0, this.timerDuration - elapsed);
+
+                    this.updateTimerDisplay();
+
+                    if (this.currentTime <= 0) {
+                        this.resetTimer();
+                    } else {
+                        requestAnimationFrame(animate);
+                    }
+                };
+
+                requestAnimationFrame(animate);
+            }
+
+            resetTimer() {
+                console.log('Timer completed, resetting...');
+                this.startTimer(); // Restart the smooth timer
+            }
+
+            updateTimerDisplay() {
+                const timerDisplay = document.getElementById('timerDisplay');
+                const currentPhaseDisplay = document.getElementById('currentPhase');
+                const progressRing = document.getElementById('progressRing');
+
+                if (timerDisplay) {
+                    timerDisplay.textContent = Math.ceil(this.currentTime);
+                }
+
+                if (currentPhaseDisplay) {
+                    const phaseNames = {
+                        'nomination': 'NOMINATION',
+                        'bidding': 'BIDDING',
+                        'travel': 'TRAVEL',
+                        'complete': 'COMPLETE'
+                    };
+                    currentPhaseDisplay.textContent = phaseNames[gamePhase] || gamePhase.toUpperCase();
+                }
+
+                if (progressRing) {
+                    const radius = progressRing.r.baseVal.value;
+                    const circumference = radius * 2 * Math.PI;
+                    const progress = (this.timerDuration - this.currentTime) / this.timerDuration;
+                    const offset = circumference * (1 - progress);
+                    progressRing.style.strokeDashoffset = offset;
+                }
             }
 
             async fetchPaintings() {
@@ -1672,6 +1785,7 @@
             if (window.game) {
                 window.game.updateUI();
                 window.game.renderPaintings();
+                window.game.startTimer(); // Reset timer when phase changes
             }
         }
 
