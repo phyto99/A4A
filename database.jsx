@@ -783,7 +783,7 @@ function makeFetchers(credits) {
           const settled=await Promise.allSettled(batch.map(id=>fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`).then(r=>r.json())));
           settled.forEach(r=>{if(r.status==='fulfilled'&&r.value.primaryImage){const d=r.value;const _ap=parseArtistDisplay(d.artistDisplayName);res.push(mkArt(d.objectID,d.title,_ap.name||d.artistDisplayName,d.objectDate,d.primaryImage,'met',{
             medium:d.medium,
-            dimensions:`${d.objectHeight||''}×${d.objectWidth||''}`,
+            dimensions:(d.objectHeight||d.objectWidth)?`${d.objectHeight||'?'}×${d.objectWidth||'?'}`:null,
             culture:d.culture||null,
             period:d.period||null,
             dynasty:d.dynasty||null,
@@ -1697,7 +1697,7 @@ const MetaRow=({label,value,mono=false})=>{
   return(
     <div style={{display:'flex',gap:8,marginBottom:3,alignItems:'flex-start'}}>
       <span style={{fontSize:9,color:'#2a2a40',minWidth:90,flexShrink:0,fontFamily:'IBM Plex Mono',letterSpacing:'0.04em',paddingTop:1}}>{label}</span>
-      <span style={{fontSize:10,color:'#8888b0',flex:1,lineHeight:1.4,fontFamily:mono?'IBM Plex Mono':'inherit'}}>{String(value)}</span>
+      <span style={{fontSize:10,color:'#8888b0',flex:1,lineHeight:1.4,fontFamily:mono?'IBM Plex Mono':'inherit'}}>{value}</span>
     </div>
   );
 };
@@ -3092,9 +3092,10 @@ export default function ArtNexus() {
 
                 {/* ── IDENTITY ── */}
                 <SectionHead label="IDENTITY"/>
-                {/* Show object type only if it adds info beyond classification */}
-                {selected.objectName&&selected.objectName!==selected.classification&&
-                  <MetaRow label="Object type"   value={selected.objectName}/>}
+                {/* Show object type only if it adds info beyond classification (normalize singular/plural) */}
+                {selected.objectName&&
+                 selected.objectName.toLowerCase().replace(/s$/,'')!==selected.classification?.toLowerCase().replace(/s$/,'')&&
+                  <MetaRow label="Object type" value={selected.objectName}/>}
                 <MetaRow label="Classification" value={selected.classification}/>
                 <MetaRow label="Medium"        value={selected.medium||selected.artworks.find(a=>a.medium)?.medium}/>
                 <MetaRow label="Dimensions"    value={selected.dimensions||selected.artworks.find(a=>a.dimensions)?.dimensions} mono/>
