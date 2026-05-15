@@ -82,6 +82,17 @@ input,button,select,textarea{font-family:'DM Sans',sans-serif}
 
 .richness-track{background:#141424;border-radius:1px;height:3px;overflow:hidden;margin-top:3px}
 .richness-fill{height:100%;border-radius:1px;transition:width 0.5s ease}
+
+.admin-panel{position:fixed;left:0;top:0;bottom:0;width:310px;background:#07070d;border-right:1px solid #161626;z-index:60;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform 0.22s cubic-bezier(0.4,0,0.2,1);overflow:hidden}
+.admin-panel.open{transform:translateX(0)}
+.mode-btn{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;border-radius:4px;border:1px solid #161628;background:transparent;cursor:pointer;transition:all 0.12s;text-align:left;width:100%}
+.mode-btn.active{border-color:var(--mc,#fbbf24);background:rgba(251,191,36,0.05)}
+.mode-btn:hover:not(.active){border-color:#222238;background:#0a0a14}
+.city-pill{padding:4px 8px;border-radius:4px;border:1px solid #161626;background:transparent;cursor:pointer;transition:all 0.12s;display:flex;align-items:center;gap:4px;font-size:11px}
+.city-pill.selected{border-color:var(--cc,#06b6d4);background:rgba(6,182,212,0.07);color:#c8c8e8}
+.city-pill:hover:not(.selected){border-color:#222238;background:#0a0a14}
+.phase-bar{height:5px;border-radius:2px;transition:width 0.4s ease}
+.tier-badge{display:inline-block;padding:1px 5px;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600}
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -104,6 +115,164 @@ const MUSEUM_META = {
   europeana:   { label:'Europeana',   color:'#f59e0b', bg:'rgba(245,158,11,0.1)',   dailyLimit:10000 },
   wikidata:    { label:'Wikidata',    color:'#fbbf24', bg:'rgba(251,191,36,0.1)',   dailyLimit:1000  },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CITY AFFINITY SYSTEM
+// Each city has match dicts keyed by lowercase substrings.
+// computeCityScore checks cluster fields against these dicts for multipliers.
+// identity × movement stack multiplicatively; dynasty adds partial bonus.
+// ═══════════════════════════════════════════════════════════════════════════════
+const CITY_AFFINITIES = {
+  paris:     { name:'Paris',     flag:'🇫🇷', region:'W. Europe',
+    culture:    {french:2.0,flemish:1.4,burgundian:1.5},
+    movement:   {impressionism:2.0,'post-impressionism':1.8,'art nouveau':1.7,rococo:1.6,realism:1.5,fauvism:1.8,cubism:1.6,naturalism:1.4,symbolism:1.5,'barbizon school':1.6},
+    nationality:{french:1.9,belgian:1.5},
+    origin:     {france:1.7,paris:1.9,'île-de-france':1.8},
+    dynasty:    {},
+  },
+  amsterdam: { name:'Amsterdam', flag:'🇳🇱', region:'W. Europe',
+    culture:    {dutch:2.0,flemish:1.8,netherlandish:2.0},
+    movement:   {'dutch golden age':2.0,baroque:1.6,'northern renaissance':1.7,'dutch realism':1.8},
+    nationality:{dutch:2.0,flemish:1.8,netherlandish:1.9},
+    origin:     {netherlands:1.9,amsterdam:2.0,delft:1.9,leiden:1.8,haarlem:1.8,'the hague':1.6},
+    dynasty:    {},
+  },
+  tokyo:     { name:'Tokyo',     flag:'🇯🇵', region:'E. Asia',
+    culture:    {japanese:2.0,'east asian':1.6,asian:1.3},
+    movement:   {'ukiyo-e':2.0,impressionism:1.6,'post-impressionism':1.5,japonisme:2.0,'nihonga':1.9},
+    nationality:{japanese:2.0},
+    origin:     {japan:2.0,tokyo:1.9,kyoto:1.9,edo:2.0,osaka:1.7},
+    dynasty:    {edo:2.0,meiji:1.9,heian:1.6,muromachi:1.5,momoyama:1.6,kamakura:1.5},
+  },
+  new_york:  { name:'New York',  flag:'🇺🇸', region:'N. America',
+    culture:    {american:1.9,'north american':1.6},
+    movement:   {'abstract expressionism':2.0,'new york school':2.0,modern:1.8,'pop art':1.9,minimalism:1.8,contemporary:1.7},
+    nationality:{american:1.9},
+    origin:     {'united states':1.8,'new york':2.0},
+    dynasty:    {},
+  },
+  london:    { name:'London',    flag:'🇬🇧', region:'W. Europe',
+    culture:    {british:1.9,english:1.8,celtic:1.4},
+    movement:   {'pre-raphaelite':1.9,romanticism:1.7,'british romanticism':1.9,'arts and crafts':1.6,impressionism:1.4},
+    nationality:{british:1.9,english:1.8,scottish:1.6,irish:1.5},
+    origin:     {'united kingdom':1.8,'great britain':1.8,england:1.7,london:1.9},
+    dynasty:    {},
+  },
+  rome:      { name:'Rome',      flag:'🇮🇹', region:'S. Europe',
+    culture:    {italian:2.0,roman:1.9},
+    movement:   {renaissance:2.0,baroque:1.8,'high renaissance':2.0,mannerism:1.7,neoclassicism:1.7},
+    nationality:{italian:2.0},
+    origin:     {italy:1.8,rome:2.0,florence:1.8,venice:1.8,naples:1.6},
+    dynasty:    {},
+  },
+  madrid:    { name:'Madrid',    flag:'🇪🇸', region:'S. Europe',
+    culture:    {spanish:2.0,castilian:1.8},
+    movement:   {baroque:1.9,surrealism:1.8,'spanish baroque':2.0,cubism:1.6,romanticism:1.5},
+    nationality:{spanish:2.0,catalan:1.7},
+    origin:     {spain:1.9,madrid:2.0,seville:1.8,'toledo':1.7,barcelona:1.7},
+    dynasty:    {},
+  },
+  cairo:     { name:'Cairo',     flag:'🇪🇬', region:'N. Africa',
+    culture:    {'ancient egyptian':1.9,egyptian:1.9,islamic:2.0,coptic:1.7,byzantine:1.5},
+    movement:   {'islamic art':2.0,'ancient art':1.8},
+    nationality:{egyptian:1.9},
+    origin:     {egypt:1.9,cairo:2.0},
+    dynasty:    {'eighteenth dynasty':2.0,'new kingdom':1.9,'old kingdom':1.8,'middle kingdom':1.8,ptolemaic:1.9,fatimid:1.8,mamluk:1.7},
+  },
+  beijing:   { name:'Beijing',   flag:'🇨🇳', region:'E. Asia',
+    culture:    {chinese:2.0,'east asian':1.7,tibetan:1.5},
+    movement:   {'chinese painting':2.0,'ink painting':1.9,'buddhist art':1.6,'literati':1.8},
+    nationality:{chinese:2.0},
+    origin:     {china:2.0,beijing:2.0,'imperial china':1.9,tibet:1.6},
+    dynasty:    {ming:2.0,qing:2.0,song:1.9,tang:1.9,yuan:1.8,han:1.8,zhou:1.7,sui:1.6},
+  },
+  sao_paulo: { name:'São Paulo', flag:'🇧🇷', region:'S. America',
+    culture:    {'latin american':2.0,brazilian:2.0,'south american':1.7},
+    movement:   {'latin american modernism':2.0,modernism:1.6,baroque:1.4},
+    nationality:{brazilian:2.0},
+    origin:     {brazil:2.0,'latin america':1.9,'south america':1.7},
+    dynasty:    {},
+  },
+  berlin:    { name:'Berlin',    flag:'🇩🇪', region:'C. Europe',
+    culture:    {german:1.9,'austro-hungarian':1.5,austrian:1.4},
+    movement:   {expressionism:2.0,bauhaus:2.0,'german expressionism':2.0,'new objectivity':1.9,romanticism:1.6,'northern renaissance':1.6},
+    nationality:{german:1.9,austrian:1.5,swiss:1.4},
+    origin:     {germany:1.9,berlin:2.0,munich:1.8,dresden:1.6},
+    dynasty:    {},
+  },
+  moscow:    { name:'Moscow',    flag:'🇷🇺', region:'E. Europe',
+    culture:    {russian:2.0},
+    movement:   {'russian avant-garde':2.0,constructivism:2.0,suprematism:1.9,realism:1.7,'socialist realism':1.6,symbolism:1.5},
+    nationality:{russian:2.0,soviet:1.7,ukrainian:1.5},
+    origin:     {russia:2.0,moscow:2.0,'saint petersburg':1.8},
+    dynasty:    {romanov:1.7},
+  },
+  vienna:    { name:'Vienna',    flag:'🇦🇹', region:'C. Europe',
+    culture:    {austrian:2.0,'austro-hungarian':1.9,german:1.4,czech:1.4},
+    movement:   {'viennese secession':2.0,'vienna secession':2.0,'art nouveau':1.9,symbolism:1.8,expressionism:1.6,baroque:1.6},
+    nationality:{austrian:2.0},
+    origin:     {austria:2.0,vienna:2.0},
+    dynasty:    {habsburg:1.9},
+  },
+  istanbul:  { name:'Istanbul',  flag:'🇹🇷', region:'Middle East',
+    culture:    {ottoman:2.0,byzantine:1.9,turkish:1.9,islamic:1.7},
+    movement:   {'islamic art':1.9,'ottoman miniature':2.0},
+    nationality:{turkish:2.0},
+    origin:     {turkey:1.9,istanbul:2.0,constantinople:1.9},
+    dynasty:    {ottoman:2.0,byzantine:1.9,seljuk:1.6},
+  },
+  florence:  { name:'Florence',  flag:'🇮🇹', region:'S. Europe',
+    culture:    {italian:2.0,florentine:2.0,tuscan:1.9},
+    movement:   {renaissance:2.0,'early renaissance':2.0,'high renaissance':1.9,'italian renaissance':2.0,mannerism:1.8},
+    nationality:{italian:2.0},
+    origin:     {florence:2.0,tuscany:1.9,italy:1.7},
+    dynasty:    {medici:2.0},
+  },
+  chicago:   { name:'Chicago',   flag:'🇺🇸', region:'N. America',
+    culture:    {american:1.8},
+    movement:   {impressionism:1.9,'post-impressionism':1.9,'american modernism':1.7,realism:1.6,'regionalism':1.7},
+    nationality:{american:1.8,french:1.5},
+    origin:     {'united states':1.6,chicago:2.0},
+    dynasty:    {},
+  },
+  seoul:     { name:'Seoul',     flag:'🇰🇷', region:'E. Asia',
+    culture:    {korean:2.0,'east asian':1.6},
+    movement:   {'korean painting':2.0,dansaekhwa:1.9,'minjung art':1.7},
+    nationality:{korean:2.0},
+    origin:     {korea:2.0,seoul:2.0},
+    dynasty:    {joseon:2.0,goryeo:1.9,silla:1.6,chosun:2.0},
+  },
+  mumbai:    { name:'Mumbai',    flag:'🇮🇳', region:'S. Asia',
+    culture:    {indian:2.0,'south asian':1.7,mughal:1.9,rajput:1.7,buddhist:1.5},
+    movement:   {'mughal painting':2.0,'rajput painting':1.9,'company painting':1.7,'bengal school':1.7},
+    nationality:{indian:2.0},
+    origin:     {india:2.0,mumbai:1.8,rajasthan:1.7,bengal:1.6},
+    dynasty:    {mughal:2.0,maurya:1.6,gupta:1.6,rajput:1.7},
+  },
+  sydney:    { name:'Sydney',    flag:'🇦🇺', region:'Oceania',
+    culture:    {australian:2.0,aboriginal:2.0,'pacific':1.5,british:1.4},
+    movement:   {'australian impressionism':2.0,'heidelberg school':2.0,contemporary:1.5},
+    nationality:{australian:2.0,british:1.4},
+    origin:     {australia:2.0,sydney:2.0},
+    dynasty:    {},
+  },
+  lisbon:    { name:'Lisbon',    flag:'🇵🇹', region:'W. Europe',
+    culture:    {portuguese:2.0,iberian:1.5},
+    movement:   {baroque:1.7,'portuguese renaissance':2.0,azulejo:1.9,mannerism:1.5},
+    nationality:{portuguese:2.0},
+    origin:     {portugal:2.0,lisbon:2.0},
+    dynasty:    {avis:1.7,braganza:1.6},
+  },
+};
+
+const SEARCH_MODES = [
+  { id:'standard', icon:'◈', label:'Standard',    color:'#fbbf24', desc:'Full 8-stage pipeline across all museums. Best for known artists and titles.' },
+  { id:'artist',   icon:'◉', label:'Artist',      color:'#ef4444', desc:'Expands artist name variants aggressively. Prioritizes artist match in ranking.' },
+  { id:'movement', icon:'⬡', label:'Movement',    color:'#8b5cf6', desc:'Searches by art movement via Wikidata SPARQL + AIC style filter.' },
+  { id:'city',     icon:'⊞', label:'City Scout',  color:'#06b6d4', desc:'Finds paintings that perform best in a chosen city. Re-ranks by city affinity.' },
+  { id:'demand',   icon:'▲', label:'Top Demand',  color:'#10b981', desc:'Surfaces the most-viewed works globally. Emphasizes Harvard pageViews and rank.' },
+  { id:'curate',   icon:'⊕', label:'Curate Hunt', color:'#f97316', desc:'Rich color + thematic metadata for building visually coherent curated sets.' },
+];
 
 const STAGE_DEFS = [
   { key:'graph',       icon:'◈', label:'Graph',       perf:'0ms'  },
@@ -820,6 +989,163 @@ function scoreRichness(cluster, query='', matcher=null){
   const total=Math.round(raw*(mult[cluster.confidence]||1.0));
   const max=520;
   return{total,breakdown:bd,max,pct:Math.min(100,Math.round(total/max*100))};
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE: CITY AFFINITY SCORER
+// Handles the varied metadata coverage problem fairly:
+// - A Dutch painting with only 'culture' field still gets 2.0× in Amsterdam
+// - A well-documented French Impressionist can reach 4.0× in Paris (culture × movement)
+// - Works with zero cultural metadata get the baseline 1.0× everywhere (no penalty)
+// ═══════════════════════════════════════════════════════════════════════════════
+function computeCityScore(cluster, cityKey) {
+  const city = CITY_AFFINITIES[cityKey];
+  if (!city) return { mult:1.0, adjusted:100, factors:[], tier:'D', name:'?', flag:'' };
+
+  const factors = [];
+
+  // Checks a single string value against a match-dict; returns best mult found.
+  // Mutates factors[] as a side-effect (only adds entries when mult > 1.0).
+  function bestMatch(val, dict, fieldLabel) {
+    if (!val || !dict) return 1.0;
+    const v = val.toLowerCase();
+    let top = 1.0, topKey = '';
+    for (const [k, m] of Object.entries(dict)) {
+      if (v.includes(k) && m > top) { top = m; topKey = k; }
+    }
+    if (top > 1.0) factors.push({ field: fieldLabel, value: val, matched: topKey, mult: top });
+    return top;
+  }
+
+  // ── Identity axis: culture / nationality / place of origin ──────────────────
+  const cM = bestMatch(cluster.culture,          city.culture,    'culture');
+  const nM = bestMatch(cluster.artistNationality, city.nationality,'nationality');
+  const oM = bestMatch(cluster.placeOfOrigin,     city.origin,     'origin');
+
+  // ── Dynasty axis: dynasty / period (partial bonus, doesn't multiply fully) ──
+  const dM = bestMatch(cluster.dynasty, city.dynasty, 'dynasty');
+  const pM = bestMatch(cluster.period,  city.dynasty, 'period');
+  const dynastyMult = Math.max(dM, pM); // pick best dynasty signal
+
+  // ── Movement axis: cluster.movement + all styleTitles entries ───────────────
+  const movSources = [cluster.movement, ...(cluster.styleTitles || [])].filter(Boolean);
+  let mM = 1.0;
+  for (const s of movSources) {
+    const m = bestMatch(s, city.movement, 'movement');
+    if (m > mM) mM = m;
+  }
+
+  // ── Combine ─────────────────────────────────────────────────────────────────
+  // Identity and movement are independent cultural axes → multiply.
+  // Dynasty adds a partial bonus (60% of its excess) so it rewards but doesn't dominate.
+  const identity = Math.max(cM, nM, oM);
+  let mult = identity * mM;
+  if (dynastyMult > 1.0) mult = mult * (1 + (dynastyMult - 1) * 0.6);
+  mult = Math.round(Math.min(4.5, mult) * 100) / 100;
+
+  const adjusted = Math.round(100 * mult);
+  const tier = adjusted >= 350 ? 'S' : adjusted >= 240 ? 'A' : adjusted >= 160 ? 'B' : adjusted >= 115 ? 'C' : 'D';
+
+  return { mult, adjusted, factors, tier, name: city.name, flag: city.flag };
+}
+
+function computeAllCityScores(cluster) {
+  return Object.entries(CITY_AFFINITIES)
+    .map(([key]) => ({ key, ...computeCityScore(cluster, key) }))
+    .sort((a, b) => b.mult - a.mult);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE: PHASE SCORE CALCULATOR
+// Consistent formula regardless of which DBs hold the painting.
+// Uses only fields actually present; no field absence is penalized beyond
+// what the richness scorer already handles.
+// ═══════════════════════════════════════════════════════════════════════════════
+function computePhaseScores(cluster) {
+  const medium = (cluster.medium || cluster.artworks?.find(a => a.medium)?.medium || '').toLowerCase();
+  const hasColors = (cluster.colors?.length || 0) + (cluster.harvardColors?.length || 0) > 0;
+
+  // ── BIDDING: 0–100 market value signal ──────────────────────────────────────
+  let bid = 35;
+  const bidBreak = {};
+  if (cluster.isHighlight)      { bid += 20; bidBreak['★ Highlight']     = '+20'; }
+  const n = cluster.sources.length;
+  const mBonus = n >= 4 ? 20 : n >= 3 ? 14 : n >= 2 ? 8 : 0;
+  if (mBonus)                   { bid += mBonus; bidBreak[`${n} museums`] = `+${mBonus}`; }
+  if (cluster.wikidataVerified) { bid +=  5; bidBreak['Wikidata ✓']       = '+5'; }
+  if (cluster.totalPageViews) {
+    const pv = Math.min(15, Math.round(Math.log10(cluster.totalPageViews + 1) * 4));
+    bid += pv; bidBreak[`${cluster.totalPageViews.toLocaleString()} views`] = `+${pv}`;
+  }
+  if (cluster.rank) {
+    const rb = cluster.rank <= 100 ? 15 : cluster.rank <= 500 ? 10 : cluster.rank <= 2000 ? 5 : 2;
+    bid += rb; bidBreak[`Rank #${cluster.rank}`] = `+${rb}`;
+  }
+  if (cluster.provenanceText)               { bid += 6; bidBreak['Provenance doc.'] = '+6'; }
+  if ((cluster.exhibitionCount || 0) >= 5)  { bid += 5; bidBreak[`${cluster.exhibitionCount} exhibitions`] = '+5'; }
+  if (cluster.isPublicDomain)               { bid += 3; bidBreak['Public domain']   = '+3'; }
+  bid = Math.min(100, bid);
+
+  // ── EXHIBITION BASE: 0–100 (multiply by city affinity for actual value) ─────
+  let exh = 35;
+  const exhBreak = {};
+  if (cluster.isHighlight) { exh += 20; exhBreak['★ Highlight']    = '+20'; }
+  if (cluster.isOnView)    { exh +=  8; exhBreak['On view']         = '+8'; }
+  if (hasColors)           { exh +=  8; exhBreak['Color data']      = '+8'; }
+  if (cluster.colorfulness != null) {
+    const cv = Math.min(8, Math.round(cluster.colorfulness / 12));
+    exh += cv; exhBreak['Colorfulness'] = `+${cv}`;
+  }
+  if (cluster.funFact)                            { exh += 6; exhBreak['Fun fact']        = '+6'; }
+  if (cluster.movement || cluster.styleTitles?.length) { exh += 5; exhBreak['Movement ID'] = '+5'; }
+  if ((cluster.exhibitionCount || 0) >= 3)        { exh += 5; exhBreak['Exhibition track record'] = '+5'; }
+  if (cluster.wallDescription || cluster.inscriptions) { exh += 4; exhBreak['Wall text']  = '+4'; }
+  exh = Math.min(100, exh);
+
+  // ── TRAVEL: qualitative fragility + cost + size ──────────────────────────────
+  let fragility = 'Standard', travelCost = 'Medium', travelNote = '';
+  if (medium.includes('fresco') || medium.includes('mural')) {
+    fragility = 'Immovable'; travelCost = 'N/A'; travelNote = 'Fresco cannot travel';
+  } else if (medium.includes('panel') || medium.includes('wood')) {
+    fragility = 'Fragile'; travelCost = 'High'; travelNote = 'Panel needs climate control';
+  } else if (medium.includes('paper') || medium.includes('watercolor') || medium.includes('drawing')) {
+    fragility = 'Delicate'; travelCost = 'Low'; travelNote = 'Light but light-sensitive';
+  } else if (medium.includes('canvas')) {
+    fragility = 'Standard'; travelCost = 'Medium';
+  }
+  if (!cluster.isOnView && cluster.isOnView !== undefined) {
+    travelNote = travelNote ? travelNote + ' · not on loan' : 'Not currently on loan';
+  }
+  let size = '?';
+  const dimStr = cluster.dimensions || cluster.artworks?.find(a => a.dimensions)?.dimensions || '';
+  const dm = dimStr.match(/(\d+\.?\d*)\s*[x×]\s*(\d+\.?\d*)/i);
+  if (dm) {
+    const area = parseFloat(dm[1]) * parseFloat(dm[2]);
+    size = area > 40000 ? 'Monumental' : area > 10000 ? 'Large' : area > 2500 ? 'Medium' : 'Small';
+  }
+
+  // ── CURATE: signals for arrangement quality ──────────────────────────────────
+  // Uses only fields actually present — fairly accounts for varied DB coverage.
+  const curateSignals = {
+    medium:   !!(medium),
+    color:    hasColors || !!cluster.aicDominantColor,
+    thematic: (cluster.tags?.length || 0) + (cluster.subjectTitles?.length || 0) >= 3,
+    movement: !!(cluster.movement || cluster.styleTitles?.length),
+    date:     !!(cluster.date && cluster.date !== 'N/A'),
+    cultural: !!(cluster.culture || cluster.period || cluster.artistNationality),
+  };
+  const curateScore = Object.values(curateSignals).filter(Boolean).length; // 0–6
+
+  // Anchor: well-documented prestigious works anchor curated sets
+  const anchorPts = (cluster.isHighlight ? 2 : 0) + (n >= 3 ? 2 : 0) + ((cluster.totalPageViews || 0) >= 10000 ? 1 : 0);
+  const isAnchor = anchorPts >= 3;
+
+  return {
+    bid:        { score: bid, breakdown: bidBreak },
+    exhibition: { score: exh, breakdown: exhBreak, note: '× city affinity multiplier' },
+    travel:     { fragility, cost: travelCost, size, note: travelNote },
+    curate:     { score: curateScore, max: 6, signals: curateSignals, isAnchor },
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1890,6 +2216,220 @@ function AddToDeckModal({ artwork, manager, onClose }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// ADMIN PANEL — Search Modes + City Scout + Coverage Inspector
+// ═══════════════════════════════════════════════════════════════════════════════
+function AdminPanel({ open, onClose, searchMode, onModeSelect, scoutCity, onCitySelect, results }) {
+  const [tab, setTab] = React.useState('modes');
+
+  // City scout: live re-rank current results by selected city — zero API calls
+  const cityRanked = React.useMemo(() => {
+    if (!results.length || !scoutCity) return [];
+    return [...results]
+      .map(r => ({ ...r, _cs: computeCityScore(r, scoutCity) }))
+      .sort((a, b) => b._cs.mult - a._cs.mult)
+      .slice(0, 15);
+  }, [results, scoutCity]);
+
+  const tierColor = { S:'#fbbf24', A:'#22c55e', B:'#3b82f6', C:'#8b5cf6', D:'#444466' };
+
+  return (
+    <div className={`admin-panel ${open ? 'open' : ''}`}>
+      {/* Header */}
+      <div style={{padding:'11px 14px',borderBottom:'1px solid #161626',display:'flex',justifyContent:'space-between',alignItems:'center',background:'#06060c',flexShrink:0}}>
+        <span className="mono" style={{fontSize:11,color:'#06b6d4',letterSpacing:'0.08em'}}>⚙ ADMIN</span>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'#2a2a40',cursor:'pointer',fontSize:16,lineHeight:1,padding:2}}>×</button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:'flex',borderBottom:'1px solid #111120',flexShrink:0}}>
+        {[{id:'modes',label:'Modes'},{id:'city',label:'City Scout'},{id:'coverage',label:'Coverage'}].map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            flex:1,padding:'8px 4px',background:'transparent',border:'none',borderBottom:`2px solid ${tab===t.id?'#06b6d4':'transparent'}`,
+            color:tab===t.id?'#06b6d4':'#2a2a44',fontSize:11,cursor:'pointer',fontFamily:'IBM Plex Mono',letterSpacing:'0.04em',transition:'color 0.12s',
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={{flex:1,overflowY:'auto'}}>
+
+        {/* ── MODES TAB ── */}
+        {tab==='modes' && (
+          <div style={{padding:'10px 10px',display:'flex',flexDirection:'column',gap:6}}>
+            <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:4,letterSpacing:'0.06em'}}>SEARCH METHOD — applies on next ▶ Run</div>
+            {SEARCH_MODES.map(m=>(
+              <button key={m.id} className={`mode-btn ${searchMode===m.id?'active':''}`}
+                style={{'--mc':m.color}}
+                onClick={()=>onModeSelect(m.id)}>
+                <span style={{fontSize:14,color:searchMode===m.id?m.color:'#2a2a40',flexShrink:0,fontFamily:'IBM Plex Mono'}}>{m.icon}</span>
+                <div>
+                  <div style={{fontSize:11,fontWeight:500,color:searchMode===m.id?m.color:'#8080a0',marginBottom:2}}>{m.label}</div>
+                  <div style={{fontSize:10,color:'#2a2a40',lineHeight:1.4}}>{m.desc}</div>
+                </div>
+              </button>
+            ))}
+            <div style={{marginTop:8,padding:'8px 10px',background:'#09090f',border:'1px solid #0f0f1e',borderRadius:4}}>
+              <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:5,letterSpacing:'0.06em'}}>HOW MODES DIFFER</div>
+              <div style={{fontSize:10,color:'#303050',lineHeight:1.6}}>
+                <strong style={{color:'#404060'}}>Standard</strong> — richness-ranked, all museums<br/>
+                <strong style={{color:'#404060'}}>Artist</strong> — same pipeline, artist-score priority<br/>
+                <strong style={{color:'#404060'}}>Movement</strong> — Wikidata movement SPARQL<br/>
+                <strong style={{color:'#404060'}}>City Scout</strong> — re-ranks by city affinity ×<br/>
+                <strong style={{color:'#404060'}}>Top Demand</strong> — pageViews + rank sort<br/>
+                <strong style={{color:'#404060'}}>Curate Hunt</strong> — color + thematic priority
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CITY SCOUT TAB ── */}
+        {tab==='city' && (
+          <div style={{padding:'10px'}}>
+            <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:8,letterSpacing:'0.06em'}}>SELECT CITY — re-ranks current results instantly, no API calls</div>
+
+            {/* City grid */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,marginBottom:10}}>
+              {Object.entries(CITY_AFFINITIES).map(([key,city])=>(
+                <button key={key} className={`city-pill ${scoutCity===key?'selected':''}`}
+                  style={{'--cc':'#06b6d4'}}
+                  onClick={()=>onCitySelect(key)}>
+                  <span>{city.flag}</span>
+                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:56}}>{city.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Selected city affinities */}
+            {scoutCity && CITY_AFFINITIES[scoutCity] && (
+              <div style={{marginBottom:10,padding:'8px 10px',background:'#09090f',border:'1px solid #0f0f1e',borderRadius:4}}>
+                <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
+                  <span style={{fontSize:16}}>{CITY_AFFINITIES[scoutCity].flag}</span>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:500,color:'#c8c8e8'}}>{CITY_AFFINITIES[scoutCity].name}</div>
+                    <div style={{fontSize:9,color:'#2a2a40'}}>{CITY_AFFINITIES[scoutCity].region}</div>
+                  </div>
+                </div>
+                {/* Movement affinities */}
+                <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:3,letterSpacing:'0.05em'}}>MOVEMENT BONUSES</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:6}}>
+                  {Object.entries(CITY_AFFINITIES[scoutCity].movement||{}).map(([k,m])=>(
+                    <span key={k} style={{fontSize:9,padding:'1px 5px',borderRadius:2,
+                      background:m>=2.0?'rgba(251,191,36,0.12)':m>=1.7?'rgba(34,197,94,0.1)':'rgba(59,130,246,0.08)',
+                      color:m>=2.0?'#fbbf24':m>=1.7?'#22c55e':'#3b82f6',
+                      border:`1px solid ${m>=2.0?'rgba(251,191,36,0.2)':m>=1.7?'rgba(34,197,94,0.2)':'rgba(59,130,246,0.18)'}`,
+                      fontFamily:'IBM Plex Mono'}}>
+                      {k} {m.toFixed(1)}×
+                    </span>
+                  ))}
+                </div>
+                <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:3,letterSpacing:'0.05em'}}>CULTURE BONUSES</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+                  {Object.entries(CITY_AFFINITIES[scoutCity].culture||{}).map(([k,m])=>(
+                    <span key={k} style={{fontSize:9,padding:'1px 5px',borderRadius:2,
+                      background:'rgba(139,92,246,0.1)',color:'#8b5cf6',border:'1px solid rgba(139,92,246,0.2)',fontFamily:'IBM Plex Mono'}}>
+                      {k} {m.toFixed(1)}×
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ranked results */}
+            {cityRanked.length > 0 ? (
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:2,letterSpacing:'0.05em'}}>
+                  TOP RESULTS IN {CITY_AFFINITIES[scoutCity]?.name?.toUpperCase()||''}
+                </div>
+                {cityRanked.map((item, i) => {
+                  const cs = item._cs;
+                  const tc = tierColor[cs.tier] || '#444466';
+                  return (
+                    <div key={item.id} style={{background:'#0a0a14',border:'1px solid #141424',borderRadius:3,padding:'6px 8px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6,marginBottom:3}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:10,color:'#9090b0',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{item.title?.slice(0,30)}</div>
+                          <div style={{fontSize:9,color:'#2a2a40'}}>{item.artist?.slice(0,22)}</div>
+                        </div>
+                        <div style={{flexShrink:0,textAlign:'right'}}>
+                          <span className="tier-badge" style={{background:`${tc}18`,color:tc,border:`1px solid ${tc}44`}}>{cs.tier}</span>
+                          <div className="mono" style={{fontSize:10,color:tc,marginTop:1}}>{cs.mult.toFixed(1)}×</div>
+                        </div>
+                      </div>
+                      {/* Mult bar */}
+                      <div style={{background:'#0d0d1a',borderRadius:2,height:3,overflow:'hidden'}}>
+                        <div className="phase-bar" style={{width:`${Math.min(100,(cs.mult/4.5)*100)}%`,background:tc}}/>
+                      </div>
+                      {/* Match factors */}
+                      {cs.factors.length > 0 && (
+                        <div style={{display:'flex',flexWrap:'wrap',gap:2,marginTop:4}}>
+                          {cs.factors.map((f,fi)=>(
+                            <span key={fi} style={{fontSize:8,color:'#3a3a58',fontFamily:'IBM Plex Mono',background:'#0e0e1c',padding:'0 3px',borderRadius:1}}>
+                              {f.field}:{f.matched} {f.mult.toFixed(1)}×
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{padding:'24px 0',textAlign:'center',color:'#1e1e30',fontSize:11}}>
+                Run a search first, then select a city to see rankings
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── COVERAGE TAB ── */}
+        {tab==='coverage' && (
+          <div style={{padding:'10px'}}>
+            <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:8,letterSpacing:'0.06em'}}>METADATA COVERAGE — which fields the top results carry</div>
+            {results.length === 0 ? (
+              <div style={{padding:'24px 0',textAlign:'center',color:'#1e1e30',fontSize:11}}>Run a search to inspect coverage</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                {[
+                  {label:'Color data',     fn: r => (r.colors?.length||0)+(r.harvardColors?.length||0)+(r.aicDominantColor?1:0) > 0},
+                  {label:'Movement',       fn: r => !!(r.movement||r.styleTitles?.length)},
+                  {label:'Culture',        fn: r => !!r.culture},
+                  {label:'Provenance',     fn: r => !!r.provenanceText},
+                  {label:'PageViews',      fn: r => !!r.totalPageViews},
+                  {label:'ExhibitionCount',fn: r => (r.exhibitionCount||0) > 0},
+                  {label:'IconClass',      fn: r => !!r.iconClass},
+                  {label:'Dynasty',        fn: r => !!r.dynasty},
+                  {label:'Techniques',     fn: r => (r.techniques?.length||0) > 0},
+                  {label:'Tags (3+)',      fn: r => (r.tags?.length||0) >= 3},
+                  {label:'On View',        fn: r => !!r.isOnView},
+                  {label:'Highlight',      fn: r => !!r.isHighlight},
+                ].map(({label,fn})=>{
+                  const top = results.slice(0, 20);
+                  const hits = top.filter(fn).length;
+                  const pct = Math.round((hits / top.length) * 100);
+                  const col = pct >= 70 ? '#22c55e' : pct >= 40 ? '#fbbf24' : '#444466';
+                  return (
+                    <div key={label} style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:10,color:'#404060',minWidth:105,flexShrink:0,fontFamily:'IBM Plex Mono'}}>{label}</span>
+                      <div style={{flex:1,height:4,background:'#0f0f1e',borderRadius:2,overflow:'hidden'}}>
+                        <div className="phase-bar" style={{width:`${pct}%`,background:col}}/>
+                      </div>
+                      <span className="mono" style={{fontSize:9,color:col,minWidth:30,textAlign:'right'}}>{hits}/{top.length}</span>
+                    </div>
+                  );
+                })}
+                <div style={{marginTop:8,fontSize:9,color:'#2a2a40',lineHeight:1.6}}>
+                  Coverage shows top 20 results. Low coverage means the formula relies more on multi-museum consensus than per-field data.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 const VIZ_MAP = {
   graph:       GraphViz,
   wikidata:    WikidataViz,
@@ -1918,6 +2458,9 @@ export default function ArtNexus() {
   const [suggestions,setSuggestions]= useState([]);
   const [deckTarget, setDeckTarget] = useState(null);
   const [creditTick, setCreditTick] = useState(0);
+  const [adminOpen,  setAdminOpen]  = useState(false);
+  const [searchMode, setSearchMode] = useState('standard');
+  const [scoutCity,  setScoutCity]  = useState('paris');
 
   const graphRef    = useRef(new ConnectionGraph());
   const creditsRef  = useRef(new CreditTracker());
@@ -1965,10 +2508,45 @@ export default function ArtNexus() {
     setLoading(true); setResults([]); setStages(INIT_STAGES);
     logRef.current=[]; setLog([]); setVizData({}); setActiveViz(null);
     try {
-      const {results:scored, museumBreakdown} = await runPipeline(
+      let {results:scored, museumBreakdown} = await runPipeline(
         query, graphRef.current, settings, creditsRef.current,
         updateStage, addLog, updateViz
       );
+
+      // ── Mode-based post-processing (zero extra API calls) ──────────────────
+      if (searchMode === 'city') {
+        // City Scout: re-rank by affinity for the selected city
+        scored = [...scored].sort((a,b) =>
+          computeCityScore(b, scoutCity).mult - computeCityScore(a, scoutCity).mult
+        );
+        addLog({stage:'score',msg:`City Scout: re-ranked for ${CITY_AFFINITIES[scoutCity]?.name}`,type:'success',ts:Date.now()});
+      } else if (searchMode === 'demand') {
+        // Top Demand: sort by Harvard pageViews + rank signal
+        scored = [...scored].sort((a,b) => {
+          const dA = (a.totalPageViews||0) + (a.rank ? Math.max(0, 50000 - a.rank) * 0.5 : 0);
+          const dB = (b.totalPageViews||0) + (b.rank ? Math.max(0, 50000 - b.rank) * 0.5 : 0);
+          return dB - dA;
+        });
+        addLog({stage:'score',msg:'Top Demand: re-ranked by pageViews + rank',type:'success',ts:Date.now()});
+      } else if (searchMode === 'curate') {
+        // Curate Hunt: sort by richness of color + thematic metadata
+        scored = [...scored].sort((a,b) => {
+          const cA = computePhaseScores(a).curate.score * 20 + (a.richness?.total||0) * 0.3;
+          const cB = computePhaseScores(b).curate.score * 20 + (b.richness?.total||0) * 0.3;
+          return cB - cA;
+        });
+        addLog({stage:'score',msg:'Curate Hunt: re-ranked by thematic/color depth',type:'success',ts:Date.now()});
+      } else if (searchMode === 'artist') {
+        // Artist mode: boost artist-match component; re-sort by queryArtist+queryExact
+        scored = [...scored].sort((a,b) => {
+          const aA = (a.richness?.breakdown?.queryArtist||0) + (a.richness?.breakdown?.queryExact||0);
+          const bA = (b.richness?.breakdown?.queryArtist||0) + (b.richness?.breakdown?.queryExact||0);
+          if (bA !== aA) return bA - aA;
+          return (b.richness?.total||0) - (a.richness?.total||0);
+        });
+        addLog({stage:'score',msg:'Artist mode: re-ranked by artist match score',type:'success',ts:Date.now()});
+      }
+
       setResults(scored);
       setGStats(graphRef.current.getStats());
       learnerRef.current.record(query, scored.length, scored.filter(c=>c.sources.length>1).length, museumBreakdown);
@@ -2007,6 +2585,11 @@ export default function ArtNexus() {
             <span className="mono" style={{fontSize:11,color:nearLimit?'#f59e0b':sessionReqs>50?'#fbbf24':'#22c55e'}}>{sessionReqs}req</span>
           </span>
           <span className="stat-chip"><span style={{fontSize:9,color:'#3a3a58'}}>◈</span><span className="mono" style={{fontSize:11,color:'#22c55e'}}>{gStats.total}</span></span>
+          <button className={`toggle-btn ${adminOpen?'on':''}`} onClick={()=>setAdminOpen(s=>!s)} title="Admin panel — search modes, city scout, coverage">
+            <span style={{fontSize:9,color:adminOpen?'#06b6d4':'inherit'}}>⚙</span>
+            <span style={{color:adminOpen?'#06b6d4':'inherit'}}>Admin</span>
+            {searchMode!=='standard'&&<span className="mono" style={{fontSize:8,color:'#06b6d4'}}>{SEARCH_MODES.find(m=>m.id===searchMode)?.icon}</span>}
+          </button>
           <button className={`toggle-btn ${deckOpen?'on':''}`} onClick={()=>setDeckOpen(s=>!s)}>
             <span style={{fontSize:9}}>⊟</span> Deck
             {collRef.current.totalItems()>0&&<span className="mono" style={{color:'#fbbf24',fontSize:9}}>{collRef.current.totalItems()}</span>}
@@ -2148,8 +2731,16 @@ export default function ArtNexus() {
         </div>
       )}
 
+      {/* ── ADMIN PANEL ───────────────────────────────────────────── */}
+      <AdminPanel
+        open={adminOpen} onClose={()=>setAdminOpen(false)}
+        searchMode={searchMode} onModeSelect={m=>{setSearchMode(m);if(m==='city')setAdminOpen(true);}}
+        scoutCity={scoutCity} onCitySelect={setScoutCity}
+        results={results}
+      />
+
       {/* ── RESULTS GRID ──────────────────────────────────────────── */}
-      <div style={{padding:'12px 16px 80px',marginRight:deckOpen?296:0,transition:'margin 0.22s ease'}}>
+      <div style={{padding:'12px 16px 80px',marginRight:deckOpen?296:0,marginLeft:adminOpen?310:0,transition:'margin 0.22s ease'}}>
         {results.length===0 && !loading && (
           <div style={{textAlign:'center',padding:'64px 0',color:'#1a1a28'}}>
             <div style={{fontSize:34,marginBottom:12,opacity:0.2}}>⬡</div>
@@ -2194,6 +2785,21 @@ export default function ArtNexus() {
                   <div style={{display:'flex',flexWrap:'wrap',gap:3,margin:'5px 0 4px'}}>
                     {museums.map(m=><MusTag key={m} m={m}/>)}
                   </div>
+                  {(()=>{
+                    // Best-city badge: top affinity city for this painting
+                    const topCity = computeAllCityScores(item)[0];
+                    const tierColor = {S:'#fbbf24',A:'#22c55e',B:'#3b82f6',C:'#8b5cf6',D:'#444466'};
+                    const tc = topCity?.tier !== 'D' ? (tierColor[topCity?.tier]||'#444466') : null;
+                    return tc ? (
+                      <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:3}}>
+                        <span title={`Best city: ${topCity.name} (${topCity.mult.toFixed(1)}×)`}
+                          style={{fontSize:10,padding:'1px 6px',borderRadius:2,background:`${tc}12`,color:tc,border:`1px solid ${tc}33`,cursor:'default',fontFamily:'IBM Plex Mono',display:'flex',alignItems:'center',gap:3}}>
+                          {CITY_AFFINITIES[topCity.key]?.flag} {topCity.mult.toFixed(1)}×
+                        </span>
+                        <span style={{fontSize:8,color:'#2a2a40'}}>{topCity.name}</span>
+                      </div>
+                    ) : null;
+                  })()}
                   <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:6}}>
                     <ConfBadge c={item.confidence}/>
                     {isMulti&&<span className="mono" style={{fontSize:8,padding:'2px 5px',borderRadius:2,background:'rgba(251,191,36,0.07)',color:'#fbbf2488',border:'1px solid rgba(251,191,36,0.18)'}}>{museums.length}× overlap</span>}
@@ -2430,21 +3036,138 @@ export default function ArtNexus() {
 
                 {/* ── GAME SIGNALS ── */}
                 <SectionHead label="GAME SIGNALS"/>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginBottom:8}}>
-                  {[
-                    {label:'Base value',  value:selected.richness?.total, color:'#fbbf24'},
-                    {label:'Prestige',    value:selected.isHighlight?'★ High':'Standard', color:selected.isHighlight?'#fbbf24':'#444466'},
-                    {label:'Crowd draw',  value:selected.totalPageViews?`${(selected.totalPageViews/1000).toFixed(0)}K views`:'Unknown', color:'#3b82f6'},
-                    {label:'Exhibition ✓',value:selected.exhibitionCount>0?`${selected.exhibitionCount} times`:'Unrecorded', color:selected.exhibitionCount>0?'#22c55e':'#333355'},
-                    {label:'City match',  value:selected.culture||selected.placeOfOrigin||selected.artistNationality||'Unknown', color:'#8b5cf6'},
-                    {label:'Curate tags', value:((selected.tags?.length||0)+(selected.subjectTitles?.length||0)+( selected.styleTitles?.length||0))>0?`${(selected.tags?.length||0)+(selected.subjectTitles?.length||0)+(selected.styleTitles?.length||0)} tags`:'None', color:'#06b6d4'},
-                  ].map(({label,value,color})=>(
-                    <div key={label} style={{background:'#09090f',border:'1px solid #101020',borderRadius:3,padding:'5px 8px'}}>
-                      <div style={{fontSize:8,color:'#2a2a40',marginBottom:1,fontFamily:'IBM Plex Mono'}}>{label}</div>
-                      <div style={{fontSize:10,color,fontFamily:'IBM Plex Mono'}}>{value??'—'}</div>
+                {(()=>{
+                  const ps = computePhaseScores(selected);
+                  const cityScores = computeAllCityScores(selected).slice(0, 8);
+                  const tierColor = { S:'#fbbf24', A:'#22c55e', B:'#3b82f6', C:'#8b5cf6', D:'#444466' };
+                  const fragilityColor = { Immovable:'#ef4444', Fragile:'#f97316', Delicate:'#f59e0b', Standard:'#22c55e' };
+                  const costColor = { 'N/A':'#444466', High:'#f97316', Medium:'#fbbf24', Low:'#22c55e', Unavailable:'#444466' };
+
+                  return (
+                    <div>
+                      {/* Phase score bars */}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,marginBottom:8}}>
+                        {/* BID */}
+                        <div style={{background:'#09090f',border:'1px solid #101020',borderRadius:3,padding:'7px 9px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                            <span style={{fontSize:9,color:'#f59e0b',fontFamily:'IBM Plex Mono',letterSpacing:'0.05em'}}>💰 BID VALUE</span>
+                            <span style={{fontSize:11,color:'#f59e0b',fontFamily:'IBM Plex Mono',fontWeight:600}}>{ps.bid.score}</span>
+                          </div>
+                          <div style={{background:'#141424',borderRadius:2,height:5,overflow:'hidden',marginBottom:4}}>
+                            <div style={{width:`${ps.bid.score}%`,height:'100%',background:'#f59e0b',borderRadius:2,transition:'width 0.5s ease'}}/>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:1}}>
+                            {Object.entries(ps.bid.breakdown).slice(0,4).map(([k,v])=>(
+                              <div key={k} style={{display:'flex',justifyContent:'space-between'}}>
+                                <span style={{fontSize:8,color:'#2a2a40'}}>{k}</span>
+                                <span style={{fontSize:8,color:'#f59e0b',fontFamily:'IBM Plex Mono'}}>{v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* EXHIBITION */}
+                        <div style={{background:'#09090f',border:'1px solid #101020',borderRadius:3,padding:'7px 9px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                            <span style={{fontSize:9,color:'#8b5cf6',fontFamily:'IBM Plex Mono',letterSpacing:'0.05em'}}>🏛️ EXHIBITION</span>
+                            <span style={{fontSize:11,color:'#8b5cf6',fontFamily:'IBM Plex Mono',fontWeight:600}}>{ps.exhibition.score}</span>
+                          </div>
+                          <div style={{background:'#141424',borderRadius:2,height:5,overflow:'hidden',marginBottom:4}}>
+                            <div style={{width:`${ps.exhibition.score}%`,height:'100%',background:'#8b5cf6',borderRadius:2,transition:'width 0.5s ease'}}/>
+                          </div>
+                          <div style={{fontSize:8,color:'#2a2a40',lineHeight:1.4}}>{ps.exhibition.note}</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:1,marginTop:2}}>
+                            {Object.entries(ps.exhibition.breakdown).slice(0,3).map(([k,v])=>(
+                              <div key={k} style={{display:'flex',justifyContent:'space-between'}}>
+                                <span style={{fontSize:8,color:'#2a2a40'}}>{k}</span>
+                                <span style={{fontSize:8,color:'#8b5cf6',fontFamily:'IBM Plex Mono'}}>{v}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* TRAVEL */}
+                        <div style={{background:'#09090f',border:'1px solid #101020',borderRadius:3,padding:'7px 9px'}}>
+                          <div style={{marginBottom:3}}>
+                            <span style={{fontSize:9,color:'#06b6d4',fontFamily:'IBM Plex Mono',letterSpacing:'0.05em'}}>✈️ TRAVEL</span>
+                          </div>
+                          <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                            <div style={{display:'flex',justifyContent:'space-between'}}>
+                              <span style={{fontSize:8,color:'#2a2a40'}}>Fragility</span>
+                              <span style={{fontSize:9,color:fragilityColor[ps.travel.fragility]||'#444466',fontFamily:'IBM Plex Mono'}}>{ps.travel.fragility}</span>
+                            </div>
+                            <div style={{display:'flex',justifyContent:'space-between'}}>
+                              <span style={{fontSize:8,color:'#2a2a40'}}>Cost tier</span>
+                              <span style={{fontSize:9,color:costColor[ps.travel.cost]||'#444466',fontFamily:'IBM Plex Mono'}}>{ps.travel.cost}</span>
+                            </div>
+                            <div style={{display:'flex',justifyContent:'space-between'}}>
+                              <span style={{fontSize:8,color:'#2a2a40'}}>Size</span>
+                              <span style={{fontSize:9,color:'#6060a0',fontFamily:'IBM Plex Mono'}}>{ps.travel.size}</span>
+                            </div>
+                            {ps.travel.note&&<div style={{fontSize:8,color:'#1e1e30',marginTop:1}}>{ps.travel.note}</div>}
+                          </div>
+                        </div>
+
+                        {/* CURATE */}
+                        <div style={{background:'#09090f',border:'1px solid #101020',borderRadius:3,padding:'7px 9px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                            <span style={{fontSize:9,color:'#10b981',fontFamily:'IBM Plex Mono',letterSpacing:'0.05em'}}>🎨 CURATE</span>
+                            <span style={{fontSize:11,color:'#10b981',fontFamily:'IBM Plex Mono',fontWeight:600}}>{ps.curate.score}/{ps.curate.max}</span>
+                          </div>
+                          <div style={{background:'#141424',borderRadius:2,height:5,overflow:'hidden',marginBottom:5}}>
+                            <div style={{width:`${(ps.curate.score/ps.curate.max)*100}%`,height:'100%',background:'#10b981',borderRadius:2,transition:'width 0.5s ease'}}/>
+                          </div>
+                          <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+                            {Object.entries(ps.curate.signals).map(([k,v])=>(
+                              <span key={k} style={{fontSize:8,padding:'1px 4px',borderRadius:2,fontFamily:'IBM Plex Mono',
+                                background:v?'rgba(16,185,129,0.1)':'rgba(68,68,102,0.1)',
+                                color:v?'#10b981':'#222238',border:`1px solid ${v?'rgba(16,185,129,0.2)':'rgba(68,68,102,0.15)'}`}}>
+                                {k}
+                              </span>
+                            ))}
+                          </div>
+                          {ps.curate.isAnchor&&<div style={{marginTop:4,fontSize:8,color:'#fbbf24'}}>★ Anchor piece</div>}
+                        </div>
+                      </div>
+
+                      {/* City affinity chart */}
+                      <div style={{background:'#09090f',border:'1px solid #101020',borderRadius:3,padding:'8px 10px',marginBottom:8}}>
+                        <div className="mono" style={{fontSize:8,color:'#2a2a40',marginBottom:7,letterSpacing:'0.06em'}}>
+                          CITY AFFINITY — exhibition value multiplier
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                          {cityScores.map(cs=>{
+                            const tc = tierColor[cs.tier]||'#444466';
+                            const pct = Math.round((cs.mult / 4.5) * 100);
+                            return (
+                              <div key={cs.key} style={{display:'flex',alignItems:'center',gap:7}}>
+                                <span style={{fontSize:13,flexShrink:0}}>{cs.flag}</span>
+                                <span style={{fontSize:10,color:'#5a5a78',minWidth:76,flexShrink:0}}>{cs.name}</span>
+                                <div style={{flex:1,height:5,background:'#141424',borderRadius:2,overflow:'hidden'}}>
+                                  <div style={{width:`${pct}%`,height:'100%',background:tc,borderRadius:2,transition:'width 0.5s ease'}}/>
+                                </div>
+                                <span className="tier-badge" style={{background:`${tc}18`,color:tc,border:`1px solid ${tc}44`,flexShrink:0}}>{cs.tier}</span>
+                                <span className="mono" style={{fontSize:10,color:tc,minWidth:32,textAlign:'right',flexShrink:0}}>{cs.mult.toFixed(1)}×</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {cityScores[0]?.factors?.length > 0 && (
+                          <div style={{marginTop:7,paddingTop:6,borderTop:'1px solid #0f0f1e'}}>
+                            <div className="mono" style={{fontSize:8,color:'#1e1e30',marginBottom:4}}>BEST MATCH FACTORS ({cityScores[0].name})</div>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+                              {cityScores[0].factors.map((f,i)=>(
+                                <span key={i} style={{fontSize:8,padding:'1px 5px',borderRadius:2,background:'rgba(251,191,36,0.08)',color:'#fbbf24',border:'1px solid rgba(251,191,36,0.18)',fontFamily:'IBM Plex Mono'}}>
+                                  {f.field}:{f.matched} {f.mult.toFixed(1)}×
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
 
                 {/* ── RAW SOURCE METADATA ── */}
                 {selected.artworks.some(a=>a.medium||a.dimensions)&&<>
