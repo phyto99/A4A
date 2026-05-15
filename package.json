@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "src.1859388c (1).js",
   "scripts": {
+    "dev": "vite --open index-vite.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,5 +12,11 @@
   "description": "",
   "dependencies": {
     "globe.gl": "^2.43.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "vite": "^6.4.2"
   }
 }

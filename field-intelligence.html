@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtNexus · Field Intelligence Matrix</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f12; --surface:#141720; --s2:#1c2030; --s3:#232840;
+  --border:#2a2e3d; --border2:#3a3f55; --text:#e2e6f0; --muted:#6b7280; --dim:#9ca3af;
+  --accent:#6366f1; --accent2:#818cf8;
+  --met:#f97316; --aic:#8b5cf6; --rijks:#3b82f6; --harvard:#ef4444;
+  --cleveland:#06b6d4; --smithsonian:#10b981; --europeana:#f59e0b; --wikidata:#fbbf24;
+  --cat-identity:#6366f1; --cat-cultural:#a855f7; --cat-artist:#c084fc;
+  --cat-physical:#06b6d4; --cat-thematic:#10b981; --cat-visual:#f59e0b;
+  --cat-display:#3b82f6; --cat-demand:#ef4444; --cat-provenance:#f97316;
+  --cat-history:#ec4899; --cat-crossref:#14b8a6; --cat-computed:#64748b;
+  --bid:#f59e0b; --exh:#8b5cf6; --trav:#06b6d4; --cur:#10b981;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:13px;line-height:1.5;min-height:100vh}
+code,kbd,.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ── NAV ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:24px;position:sticky;top:0;z-index:100}
+.logo{font-size:15px;font-weight:600;letter-spacing:-.3px;padding:14px 0;color:var(--accent2)}
+.logo span{color:var(--muted)}
+nav{display:flex;gap:2px}
+.tab{padding:14px 16px;cursor:pointer;border-bottom:2px solid transparent;font-size:12px;font-weight:500;color:var(--muted);transition:all .15s;white-space:nowrap;letter-spacing:.3px;text-transform:uppercase}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.header-badge{margin-left:auto;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted)}
+
+/* ── PANELS ── */
+.panel{display:none;padding:20px}
+.panel.active{display:block}
+
+/* ── FILTERS ── */
+.filters{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-group label{font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap;text-transform:uppercase;letter-spacing:.4px}
+select{background:var(--s2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;font-family:inherit}
+select:focus{outline:none;border-color:var(--accent)}
+.db-pills{display:flex;flex-wrap:wrap;gap:4px}
+.pill{padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;opacity:.45;transition:opacity .12s;font-family:'IBM Plex Mono',monospace;letter-spacing:.3px}
+.pill.on{opacity:1}
+.stats-bar{margin-left:auto;font-size:11px;color:var(--muted)}
+.stats-bar strong{color:var(--text)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:57px;z-index:50;background:var(--s2)}
+th{padding:9px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--border);user-select:none}
+th:hover{color:var(--text)}
+th.sorted{color:var(--accent2)}
+th .arrow{display:inline-block;margin-left:3px;opacity:.5}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.4}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(99,102,241,.04)}
+tr.dim td{opacity:.5}
+
+/* ── CELLS ── */
+.field-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);font-weight:500}
+.field-label{font-weight:500;color:var(--text);margin-bottom:1px}
+.cat-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;opacity:.85}
+.type-badge{display:inline-block;padding:1px 5px;border-radius:3px;background:var(--s3);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);border:1px solid var(--border)}
+.stage-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:500;background:var(--s3);border:1px solid var(--border2)}
+.db-tags{display:flex;flex-wrap:wrap;gap:3px}
+.db-tag{padding:2px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600}
+.pts-cell{text-align:right}
+.pts-num{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600}
+.pts-bar{height:3px;border-radius:2px;margin-top:3px;background:var(--accent);opacity:.8}
+.phase-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;min-width:80px}
+.phase-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
+.phase-lbl{font-size:9px;font-weight:600;opacity:.6}
+.phase-bar-wrap{height:16px;width:100%;background:var(--border);border-radius:2px;overflow:hidden;position:relative}
+.phase-bar{height:100%;border-radius:2px;transition:width .2s}
+.phase-val{position:absolute;right:2px;top:1px;font-size:9px;color:#fff;opacity:.9;font-family:'IBM Plex Mono',monospace}
+.cities-cell{font-size:11px;color:var(--muted);max-width:140px}
+.notes-cell{font-size:11px;color:var(--dim);max-width:220px}
+
+/* ── CITY AFFINITY ── */
+.city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.city-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.city-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.city-flag{font-size:22px}
+.city-name{font-size:15px;font-weight:600}
+.city-sub{font-size:11px;color:var(--muted)}
+.affinity-list{padding:10px 14px;display:flex;flex-direction:column;gap:5px}
+.affinity-row{display:flex;align-items:center;gap:8px}
+.affinity-tag{padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600;min-width:130px}
+.affinity-mult{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;min-width:32px}
+.affinity-bar-bg{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.affinity-bar{height:100%;border-radius:2px}
+.city-strategy{padding:8px 14px 12px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)}
+.city-strategy strong{color:var(--dim)}
+
+/* ── FORMULA ── */
+.formula-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.formula-components{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.formula-row{display:flex;align-items:center;gap:10px}
+.formula-label{font-size:12px;font-weight:500;min-width:210px}
+.formula-pts{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;min-width:50px;text-align:right;color:var(--accent2)}
+.formula-bar-bg{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.formula-bar-fill{height:100%;border-radius:4px}
+.formula-note{font-size:10px;color:var(--muted);margin-left:auto}
+.formula-section-head{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 0 2px;border-top:1px solid var(--border);margin-top:2px}
+.formula-total{background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:12px 16px}
+.mult-table{width:100%;border-collapse:collapse}
+.mult-table th,.mult-table td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:12px}
+.mult-table th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.mult-table tr:last-child td{border-bottom:none}
+
+/* ── HEATMAP ── */
+.heat-wrap{overflow-x:auto}
+.heat-table{border-collapse:separate;border-spacing:3px}
+.heat-table th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600;padding:4px 6px;white-space:nowrap}
+.heat-cell{width:62px;height:44px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:600;cursor:default;transition:transform .1s}
+.heat-cell:hover{transform:scale(1.06)}
+.heat-cell .hc-num{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600}
+.heat-cell .hc-lbl{font-size:9px;opacity:.7}
+.heat-db-lbl{padding:4px 8px;font-size:12px;font-weight:600;white-space:nowrap}
+.heat-legend{display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.heat-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.heat-swatch{width:14px;height:14px;border-radius:3px}
+
+/* ── MISC ── */
+.section-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+.badge-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px}
+.infobox{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--dim);line-height:1.6}
+.infobox strong{color:var(--text)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Art<span>Nexus</span> · <span>Field Intelligence</span></div>
+  <nav id="nav">
+    <div class="tab active" data-tab="matrix">Field Matrix</div>
+    <div class="tab" data-tab="city">City Affinity</div>
+    <div class="tab" data-tab="formula">Formula Weights</div>
+    <div class="tab" data-tab="heatmap">DB Coverage</div>
+  </nav>
+  <div class="header-badge">v2 · 8 Sources · <span id="field-count">—</span> Fields</div>
+</header>
+
+<!-- ══════════════════════════════════════════ MATRIX ══ -->
+<div class="panel active" id="tab-matrix">
+  <div class="filters">
+    <div class="filter-group">
+      <label>Source</label>
+      <div class="db-pills" id="db-filter">
+        <div class="pill on" data-db="met" style="background:#f97316;color:#fff">MET</div>
+        <div class="pill on" data-db="aic" style="background:#8b5cf6;color:#fff">AIC</div>
+        <div class="pill on" data-db="rijks" style="background:#3b82f6;color:#fff">RIJKS</div>
+        <div class="pill on" data-db="harvard" style="background:#ef4444;color:#fff">HARV</div>
+        <div class="pill on" data-db="cleveland" style="background:#06b6d4;color:#fff">CLEV</div>
+        <div class="pill on" data-db="smithsonian" style="background:#10b981;color:#fff">SMITH</div>
+        <div class="pill on" data-db="europeana" style="background:#f59e0b;color:#000">EURO</div>
+        <div class="pill on" data-db="wikidata" style="background:#fbbf24;color:#000">WIKI</div>
+        <div class="pill on" data-db="computed" style="background:#64748b;color:#fff">COMP</div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>Category</label>
+      <select id="cat-filter">
+        <option value="">All Categories</option>
+        <option value="identity">Identity</option>
+        <option value="cultural">Cultural Origin</option>
+        <option value="artist">Artist</option>
+        <option value="physical">Physical</option>
+        <option value="thematic">Subject / Thematic</option>
+        <option value="visual">Visual</option>
+        <option value="display">Display & Location</option>
+        <option value="demand">Demand & Popularity</option>
+        <option value="provenance">Provenance</option>
+        <option value="history">Exhibition History</option>
+        <option value="crossref">Cross-Reference</option>
+        <option value="computed">Computed</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Stage</label>
+      <select id="stage-filter">
+        <option value="">All Stages</option>
+        <option value="search">search</option>
+        <option value="enrich">enrich</option>
+        <option value="wikidata">wikidata</option>
+        <option value="cluster">cluster</option>
+        <option value="score">score</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Phase ≥</label>
+      <select id="phase-filter">
+        <option value="">Any</option>
+        <option value="bid">Bidding ≥3</option>
+        <option value="exh">Exhibition ≥3</option>
+        <option value="trav">Travel ≥3</option>
+        <option value="cur">Curate ≥3</option>
+      </select>
+    </div>
+    <div class="stats-bar" id="stats-bar"><strong>—</strong> fields shown</div>
+  </div>
+  <div class="tbl-wrap">
+    <table id="matrix-table">
+      <thead>
+        <tr>
+          <th data-sort="label">Field <span class="arrow">↕</span></th>
+          <th data-sort="dbs">Sources</th>
+          <th data-sort="cat">Category <span class="arrow">↕</span></th>
+          <th data-sort="type">Type</th>
+          <th data-sort="stage">Stage <span class="arrow">↕</span></th>
+          <th data-sort="pts" class="sorted">Formula Pts <span class="arrow">↓</span></th>
+          <th>Game Phases</th>
+          <th data-sort="cities">Cities</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ CITY ══ -->
+<div class="panel" id="tab-city">
+  <div class="section-title">City Affinity Matrix</div>
+  <div class="section-sub">How cultural metadata fields multiply exhibition performance in each city. Multipliers apply to base exhibition value.</div>
+  <div class="infobox" style="margin-bottom:16px">
+    <strong>How it works:</strong> When a painting travels to a city, the system checks its cultural fields (movement, nationality, culture, period, dynasty) against each city's affinity table.
+    Matching fields apply their multiplier — multiple matches stack multiplicatively. A French Impressionist painting in Paris can achieve <strong>4.0×</strong> base value.
+    Fields that drive this: <code>movement</code>, <code>artistNationality</code>, <code>culture</code>, <code>period</code>, <code>dynasty</code>, <code>origin</code>, <code>productionPlaces</code>.
+  </div>
+  <div class="city-grid" id="city-grid"></div>
+</div>
+
+<!-- ══════════════════════════════════════════ FORMULA ══ -->
+<div class="panel" id="tab-formula">
+  <div class="section-title">Formula Weight Breakdown</div>
+  <div class="section-sub">scoreRichness() components — how each element contributes to the final ranking score.</div>
+  <div class="formula-layout">
+    <div>
+      <div class="formula-components" id="formula-components"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="formula-total">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Confidence Multiplier</div>
+        <table class="mult-table">
+          <thead><tr><th>Match Type</th><th>Multiplier</th><th>Condition</th></tr></thead>
+          <tbody>
+            <tr><td>✦ Exact</td><td style="color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600">1.50×</td><td style="font-size:11px;color:var(--muted)">Title + artist identical</td></tr>
+            <tr><td>↑ High</td><td style="color:#10b981;font-family:'IBM Plex Mono',monospace;font-weight:600">1.25×</td><td style="font-size:11px;color:var(--muted)">Both fuzzy ≥0.85</td></tr>
+            <tr><td>~ Medium</td><td style="color:var(--text);font-family:'IBM Plex Mono',monospace;font-weight:600">1.00×</td><td style="font-size:11px;color:var(--muted)">Title ≥0.7</td></tr>
+            <tr><td>↓ Low</td><td style="color:#f59e0b;font-family:'IBM Plex Mono',monospace;font-weight:600">0.65×</td><td style="font-size:11px;color:var(--muted)">Weak match</td></tr>
+            <tr><td>✗ None</td><td style="color:#ef4444;font-family:'IBM Plex Mono',monospace;font-weight:600">0.45×</td><td style="font-size:11px;color:var(--muted)">No cross-DB match</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="formula-total">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Museum Count (Exponential)</div>
+        <table class="mult-table">
+          <thead><tr><th>Sources</th><th>Points</th><th>Rationale</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#ef4444">8 pts</td><td style="font-size:11px;color:var(--muted)">Single source</td></tr>
+            <tr><td>2</td><td style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#f59e0b">50 pts</td><td style="font-size:11px;color:var(--muted)">Cross-validated</td></tr>
+            <tr><td>3</td><td style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#10b981">75 pts</td><td style="font-size:11px;color:var(--muted)">Strong consensus</td></tr>
+            <tr><td>4</td><td style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--accent2)">90 pts</td><td style="font-size:11px;color:var(--muted)">Iconic work</td></tr>
+            <tr><td>5+</td><td style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#c084fc">100 pts</td><td style="font-size:11px;color:var(--muted)">Global masterpiece</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="infobox">
+        <strong>Score formula:</strong><br>
+        <code>total = (Σ field_pts + museum_pts + query_pts) × confidence_mult</code><br><br>
+        Max theoretical: ~<strong>490 pts × 1.5 = 735</strong><br>
+        Typical top work: <strong>250–400 pts</strong><br>
+        Single-DB AIC cap: <strong>~130 pts × 0.65 ≈ 85 pts</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ HEATMAP ══ -->
+<div class="panel" id="tab-heatmap">
+  <div class="section-title">Database Coverage Heatmap</div>
+  <div class="section-sub">How many fields each database provides per category. Darker = richer coverage.</div>
+  <div class="heat-legend" id="heat-legend"></div>
+  <div class="heat-wrap"><table class="heat-table" id="heat-table"></table></div>
+  <br>
+  <div class="infobox">
+    <strong>Reading the heatmap:</strong> Numbers show field count per category from each database.
+    <strong>Rijks</strong> leads on Physical (materials, techniques, colors).
+    <strong>AIC</strong> leads on Thematic (subjects, classifications, styles) and has the only publication history.
+    <strong>Harvard</strong> is uniquely strong on Demand (pageViews, rank, publicationCount).
+    <strong>Cleveland</strong> provides unique narrative fields (funFact, wallDescription).
+    <strong>Wikidata</strong> bridges cross-museum identity.
+    <strong>Met</strong> is the broadest single source.
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════════
+
+const DB_META = {
+  met:       {label:'MET',         color:'#f97316', textColor:'#fff'},
+  aic:       {label:'AIC',         color:'#8b5cf6', textColor:'#fff'},
+  rijks:     {label:'Rijks',       color:'#3b82f6', textColor:'#fff'},
+  harvard:   {label:'Harvard',     color:'#ef4444', textColor:'#fff'},
+  cleveland: {label:'Cleveland',   color:'#06b6d4', textColor:'#fff'},
+  smithsonian:{label:'Smithsonian',color:'#10b981', textColor:'#fff'},
+  europeana: {label:'Europeana',   color:'#f59e0b', textColor:'#000'},
+  wikidata:  {label:'Wikidata',    color:'#fbbf24', textColor:'#000'},
+  computed:  {label:'Computed',    color:'#64748b', textColor:'#fff'},
+};
+
+const CAT_META = {
+  identity:  {label:'Identity',       color:'#6366f1'},
+  cultural:  {label:'Cultural Origin', color:'#a855f7'},
+  artist:    {label:'Artist',         color:'#c084fc'},
+  physical:  {label:'Physical',       color:'#06b6d4'},
+  thematic:  {label:'Subject/Theme',  color:'#10b981'},
+  visual:    {label:'Visual',         color:'#f59e0b'},
+  display:   {label:'Display/Location',color:'#3b82f6'},
+  demand:    {label:'Demand',         color:'#ef4444'},
+  provenance:{label:'Provenance',     color:'#f97316'},
+  history:   {label:'Exh. History',   color:'#ec4899'},
+  crossref:  {label:'Cross-Ref',      color:'#14b8a6'},
+  computed:  {label:'Computed',       color:'#64748b'},
+};
+
+const STAGE_COLOR = {
+  search:'#3b82f6', enrich:'#10b981', wikidata:'#fbbf24', cluster:'#f97316', score:'#8b5cf6',
+};
+
+const FIELDS = [
+  // IDENTITY
+  {id:'title',      label:'Title',             field:'title',                    dbs:['met','aic','rijks','harvard','cleveland','smithsonian','europeana','wikidata'], cat:'identity',  type:'string',  stage:'search',   pts:0,  bid:5,exh:3,trav:1,cur:4, cities:[],                                              notes:'Primary identifier. Query title relevance computed from this.'},
+  {id:'artist',     label:'Artist',            field:'artist / artistDisplayName',dbs:['met','aic','rijks','harvard','cleveland','smithsonian','europeana','wikidata'], cat:'identity',  type:'string',  stage:'search',   pts:0,  bid:5,exh:4,trav:1,cur:3, cities:[],                                              notes:'Artist name. Used in queryArtist and queryExact scoring.'},
+  {id:'date',       label:'Date / Year',       field:'date / objectDate',         dbs:['met','aic','rijks','harvard','cleveland','smithsonian','europeana','wikidata'], cat:'identity',  type:'string',  stage:'search',   pts:0,  bid:3,exh:2,trav:1,cur:4, cities:[],                                              notes:'Creation date. Drives curate narrative arc (chronological).'},
+  {id:'imageURL',   label:'Image URL',         field:'primaryImage / imageURL',   dbs:['met','aic','rijks','harvard','cleveland','europeana'],                          cat:'identity',  type:'string',  stage:'search',   pts:0,  bid:4,exh:4,trav:0,cur:4, cities:[],                                              notes:'Enables visual display, pHash fingerprinting, and color extraction.'},
+  {id:'objectURL',  label:'Museum Page URL',   field:'objectURL / url',           dbs:['met','aic','rijks','harvard','cleveland'],                                      cat:'identity',  type:'string',  stage:'search',   pts:0,  bid:1,exh:0,trav:0,cur:0, cities:[],                                              notes:'Canonical record link. Verification and deep-linking.'},
+
+  // CULTURAL ORIGIN
+  {id:'culture',    label:'Culture',           field:'culture',                   dbs:['met','harvard','cleveland','wikidata'],                                         cat:'cultural',  type:'string',  stage:'enrich',   pts:5,  bid:4,exh:5,trav:2,cur:4, cities:['Paris','Rome','Madrid','Cairo','Beijing','Tokyo','Amsterdam'], notes:'Cultural origin (e.g. "French"). Primary city affinity driver.'},
+  {id:'period',     label:'Period',            field:'period',                    dbs:['met','harvard','cleveland','wikidata'],                                         cat:'cultural',  type:'string',  stage:'enrich',   pts:4,  bid:3,exh:4,trav:1,cur:4, cities:['Rome','Cairo','Beijing','Madrid','Amsterdam'],               notes:'Historical period (e.g. "Renaissance"). City affinity + curate coherence.'},
+  {id:'dynasty',    label:'Dynasty',           field:'dynasty',                   dbs:['met'],                                                                         cat:'cultural',  type:'string',  stage:'search',   pts:3,  bid:3,exh:4,trav:1,cur:3, cities:['Cairo','Beijing','Rome'],                                   notes:'Egyptian/Chinese dynasty. Strong Cairo/Beijing affinity.'},
+  {id:'movement',   label:'Art Movement',      field:'movement / styleTitles / wdMovement', dbs:['aic','wikidata'],                                                   cat:'cultural',  type:'string',  stage:'enrich',   pts:6,  bid:4,exh:5,trav:1,cur:5, cities:['Paris','Amsterdam','Berlin','Moscow','New York','Madrid'],   notes:'#1 city affinity driver. French→Paris 2.0×, Impressionism→Paris 2.0×.'},
+  {id:'genre',      label:'Genre',             field:'genre / wdGenre',           dbs:['wikidata'],                                                                    cat:'cultural',  type:'string',  stage:'wikidata', pts:4,  bid:3,exh:3,trav:1,cur:4, cities:[],                                                          notes:'Wikidata P136. Portrait/landscape/history/still life/etc.'},
+  {id:'artistNat',  label:'Artist Nationality',field:'artistNationality',         dbs:['met','wikidata'],                                                              cat:'cultural',  type:'string',  stage:'search',   pts:3,  bid:3,exh:4,trav:1,cur:2, cities:['Paris','London','Amsterdam','Rome','Madrid','Berlin','Moscow','Tokyo'], notes:'Nationality-based city affinity. French→Paris, Dutch→Amsterdam, etc.'},
+  {id:'origin',     label:'Place of Origin',   field:'placeOfOrigin / wdOrigin',  dbs:['aic','wikidata'],                                                              cat:'cultural',  type:'string',  stage:'enrich',   pts:3,  bid:2,exh:4,trav:2,cur:2, cities:['Rome','Cairo','Beijing','Tokyo','Madrid'],                   notes:'Geographic origin. Also a travel cost modifier (farther = costlier).'},
+  {id:'prodPlaces', label:'Production Places', field:'productionPlaces',          dbs:['rijks'],                                                                       cat:'cultural',  type:'array',   stage:'enrich',   pts:3,  bid:2,exh:3,trav:2,cur:2, cities:['Amsterdam','Rome','Madrid'],                                notes:'Rijks: where the object was physically made.'},
+  {id:'century',    label:'Century',           field:'century',                   dbs:['harvard'],                                                                     cat:'cultural',  type:'string',  stage:'enrich',   pts:0,  bid:2,exh:2,trav:1,cur:3, cities:[],                                                          notes:'Harvard: century label (e.g. "17th century"). Curate narrative arc.'},
+
+  // ARTIST
+  {id:'birthDate',  label:'Artist Birth Year', field:'artistBeginDate',           dbs:['met'],                                                                         cat:'artist',    type:'string',  stage:'search',   pts:0,  bid:2,exh:1,trav:0,cur:3, cities:[],                                                          notes:'Birth year for chronology + narrative arc in curate.'},
+  {id:'deathDate',  label:'Artist Death Year', field:'artistEndDate',             dbs:['met'],                                                                         cat:'artist',    type:'string',  stage:'search',   pts:0,  bid:1,exh:1,trav:0,cur:3, cities:[],                                                          notes:'Death year. Combined with birth for period context.'},
+  {id:'histPers',   label:'Historical Persons', field:'historicalPersons',        dbs:['rijks'],                                                                       cat:'artist',    type:'array',   stage:'enrich',   pts:5,  bid:4,exh:3,trav:0,cur:3, cities:[],                                                          notes:'Rijks: named historical figures depicted. Narrative / storytelling value.'},
+  {id:'constituents',label:'Collaborators',    field:'constituents',              dbs:['met'],                                                                         cat:'artist',    type:'array',   stage:'search',   pts:2,  bid:2,exh:1,trav:0,cur:2, cities:[],                                                          notes:'Workshop, attributed roles, co-creators.'},
+
+  // PHYSICAL
+  {id:'medium',     label:'Medium',            field:'medium',                    dbs:['met','aic','rijks'],                                                            cat:'physical',  type:'string',  stage:'search',   pts:5,  bid:4,exh:3,trav:4,cur:4, cities:[],                                                          notes:'E.g. "Oil on canvas". Travel fragility proxy. Curate visual harmony.'},
+  {id:'dimensions', label:'Dimensions',        field:'objectHeight × objectWidth',dbs:['met'],                                                                         cat:'physical',  type:'string',  stage:'search',   pts:3,  bid:3,exh:4,trav:4,cur:4, cities:[],                                                          notes:'Physical size. Exhibition wall space, travel crate cost, curate scale.'},
+  {id:'materials',  label:'Materials (array)', field:'materials',                 dbs:['rijks'],                                                                       cat:'physical',  type:'array',   stage:'enrich',   pts:4,  bid:3,exh:2,trav:3,cur:3, cities:[],                                                          notes:'Rijks: detailed material list. Richer than medium string.'},
+  {id:'techniques', label:'Techniques',        field:'techniques',                dbs:['rijks','cleveland'],                                                           cat:'physical',  type:'array',   stage:'enrich',   pts:4,  bid:3,exh:2,trav:2,cur:3, cities:[],                                                          notes:'Artistic technique(s). Curate thematic coherence.'},
+  {id:'objectName', label:'Object Type',       field:'objectName',                dbs:['met'],                                                                         cat:'physical',  type:'string',  stage:'search',   pts:0,  bid:2,exh:2,trav:2,cur:2, cities:[],                                                          notes:'"Painting", "Print", "Drawing". Travel cost tier classification.'},
+  {id:'wdMaterial', label:'Material (Wikidata)',field:'wdMaterial (P186)',        dbs:['wikidata'],                                                                    cat:'physical',  type:'string',  stage:'wikidata', pts:4,  bid:3,exh:2,trav:3,cur:3, cities:[],                                                          notes:'Wikidata P186. Cross-validates medium/materials.'},
+
+  // THEMATIC
+  {id:'tags',       label:'Tags',              field:'tags[]',                    dbs:['met'],                                                                         cat:'thematic',  type:'array',   stage:'search',   pts:12, bid:3,exh:3,trav:0,cur:5, cities:[],                                                          notes:'Met: rich curated tag array. Capped +12 pts. Primary curate thematic signal.'},
+  {id:'subjects',   label:'Subject Titles',    field:'subjectTitles[]',           dbs:['aic'],                                                                         cat:'thematic',  type:'array',   stage:'enrich',   pts:8,  bid:3,exh:3,trav:0,cur:5, cities:[],                                                          notes:'AIC: hierarchical subject taxonomy. Capped at +8 pts.'},
+  {id:'classes',    label:'Classification Titles',field:'classificationTitles[]', dbs:['aic'],                                                                         cat:'thematic',  type:'array',   stage:'enrich',   pts:8,  bid:2,exh:2,trav:0,cur:4, cities:[],                                                          notes:'AIC: classification hierarchy. Capped at +8 pts.'},
+  {id:'class1',     label:'Classification',    field:'classification',            dbs:['met'],                                                                         cat:'thematic',  type:'string',  stage:'search',   pts:0,  bid:2,exh:2,trav:0,cur:3, cities:[],                                                          notes:'Met: broad classification label (e.g. "Paintings").'},
+  {id:'iconClass',  label:'IconClass Code',    field:'iconClass',                 dbs:['rijks'],                                                                       cat:'thematic',  type:'string',  stage:'enrich',   pts:4,  bid:2,exh:3,trav:0,cur:4, cities:[],                                                          notes:'International iconographic notation system. Strong curate signal.'},
+  {id:'wallDesc',   label:'Wall Description',  field:'wallDescription',           dbs:['cleveland'],                                                                   cat:'thematic',  type:'longtext',stage:'enrich',   pts:6,  bid:3,exh:2,trav:0,cur:3, cities:[],                                                          notes:'Cleveland: gallery wall text. Rich semantic content for NLP.'},
+  {id:'funFact',    label:'Fun Fact',          field:'funFact',                   dbs:['cleveland'],                                                                   cat:'thematic',  type:'string',  stage:'enrich',   pts:4,  bid:4,exh:4,trav:0,cur:2, cities:[],                                                          notes:'Cleveland: unique trivia. Boosts exhibition appeal + narrative.'},
+  {id:'inscripts',  label:'Inscriptions',      field:'inscriptions',              dbs:['aic'],                                                                         cat:'thematic',  type:'string',  stage:'enrich',   pts:2,  bid:2,exh:1,trav:0,cur:2, cities:[],                                                          notes:'AIC: text inscribed on the work. Rare but high distinctiveness.'},
+
+  // VISUAL
+  {id:'aicColor',   label:'Dominant Color (AIC)',field:'aicDominantColor',        dbs:['aic'],                                                                         cat:'visual',    type:'color',   stage:'enrich',   pts:3,  bid:2,exh:3,trav:0,cur:5, cities:[],                                                          notes:'AIC: hex dominant color. Core curate palette harmony signal.'},
+  {id:'rijksColors',label:'Color Swatches (Rijks)',field:'rijksColors[{hex,pct}]',dbs:['rijks'],                                                                       cat:'visual',    type:'color',   stage:'enrich',   pts:8,  bid:2,exh:3,trav:0,cur:5, cities:[],                                                          notes:'Rijks: array of hex+percentage pairs. Best color dataset. Curate harmony.'},
+  {id:'harvColors', label:'Color Swatches (Harv)',field:'harvardColors[]',         dbs:['harvard'],                                                                     cat:'visual',    type:'color',   stage:'enrich',   pts:5,  bid:2,exh:3,trav:0,cur:5, cities:[],                                                          notes:'Harvard: color array. Curate palette analysis.'},
+  {id:'colorful',   label:'Colorfulness Score', field:'colorfulness',             dbs:['aic'],                                                                         cat:'visual',    type:'number',  stage:'enrich',   pts:4,  bid:2,exh:4,trav:0,cur:4, cities:[],                                                          notes:'AIC: numeric 0–100. High colorfulness → exhibition draw + curate contrast.'},
+  {id:'phash',      label:'Perceptual Hash',    field:'pHash (computed)',          dbs:['computed'],                                                                    cat:'visual',    type:'string',  stage:'cluster',  pts:0,  bid:0,exh:0,trav:0,cur:3, cities:[],                                                          notes:'DCT 8×8 visual fingerprint. Cross-museum duplicate detection.'},
+
+  // DISPLAY
+  {id:'isHighlight',label:'Museum Highlight',   field:'isHighlight',              dbs:['met'],                                                                         cat:'display',   type:'bool',    stage:'search',   pts:15, bid:5,exh:5,trav:2,cur:3, cities:[],                                                          notes:'Highest single field weight. Met curated top works. Strong bidding signal.'},
+  {id:'isOnView',   label:'On View',            field:'isOnView',                 dbs:['met','aic','rijks','cleveland'],                                                cat:'display',   type:'bool',    stage:'enrich',   pts:8,  bid:4,exh:4,trav:3,cur:2, cities:[],                                                          notes:'Currently displayed. Active works are loanable → travel phase relevance.'},
+  {id:'galleryNum', label:'Gallery Number',     field:'GalleryNumber / galleryNumber', dbs:['met'],                                                                   cat:'display',   type:'string',  stage:'search',   pts:0,  bid:2,exh:2,trav:0,cur:1, cities:[],                                                          notes:'Met: numeric gallery. Confirms physical on-view status.'},
+  {id:'galleryTit', label:'Gallery Title',      field:'galleryTitle',             dbs:['met','aic','rijks','cleveland'],                                                cat:'display',   type:'string',  stage:'enrich',   pts:3,  bid:2,exh:3,trav:0,cur:2, cities:[],                                                          notes:'Named gallery room. Context for permanent collection placement.'},
+  {id:'pubDomain',  label:'Public Domain',      field:'isPublicDomain',           dbs:['met'],                                                                         cat:'display',   type:'bool',    stage:'search',   pts:0,  bid:2,exh:1,trav:0,cur:0, cities:[],                                                          notes:'Copyright status. Affects reproducibility / merchandise game mechanic.'},
+
+  // DEMAND
+  {id:'pageViews',  label:'Total Page Views',   field:'totalPageViews',           dbs:['harvard'],                                                                     cat:'demand',    type:'number',  stage:'enrich',   pts:10, bid:5,exh:5,trav:2,cur:2, cities:[],                                                          notes:'Harvard: cumulative digital views. Best objective demand signal. Bidding value.'},
+  {id:'rank',       label:'Harvard Rank',       field:'rank',                     dbs:['harvard'],                                                                     cat:'demand',    type:'number',  stage:'enrich',   pts:8,  bid:5,exh:4,trav:1,cur:2, cities:[],                                                          notes:'Internal popularity rank within Harvard museum. Market value proxy.'},
+  {id:'exhibCount', label:'Exhibition Count',   field:'exhibitionCount',          dbs:['harvard','cleveland'],                                                         cat:'demand',    type:'number',  stage:'enrich',   pts:6,  bid:4,exh:5,trav:3,cur:2, cities:[],                                                          notes:'# of times loaned/exhibited. Proven exhibition track record.'},
+  {id:'pubCount',   label:'Publication Count',  field:'publicationCount',         dbs:['harvard'],                                                                     cat:'demand',    type:'number',  stage:'enrich',   pts:4,  bid:4,exh:3,trav:1,cur:2, cities:[],                                                          notes:'# scholarly publications. Academic prestige + market value.'},
+
+  // PROVENANCE
+  {id:'creditLine', label:'Credit Line',        field:'creditLine',               dbs:['met','aic','rijks','harvard','cleveland'],                                      cat:'provenance',type:'string',  stage:'enrich',   pts:2,  bid:3,exh:2,trav:0,cur:1, cities:[],                                                          notes:'Acquisition context. Prestigious donor names add bidding value.'},
+  {id:'provText',   label:'Provenance Text',    field:'provenanceText',           dbs:['aic','harvard','cleveland'],                                                   cat:'provenance',type:'longtext',stage:'enrich',   pts:6,  bid:5,exh:2,trav:0,cur:1, cities:[],                                                          notes:'Full ownership chain. Rich provenance = highest bidding value. WWII gaps flagged.'},
+  {id:'acqYear',    label:'Accession Year',     field:'accessionYear / fiscalYearAcquisition', dbs:['harvard','aic'],                                                 cat:'provenance',type:'number',  stage:'enrich',   pts:2,  bid:2,exh:1,trav:0,cur:2, cities:[],                                                          notes:'Year acquired by institution. Longer museum ownership = cleaner provenance.'},
+
+  // HISTORY
+  {id:'exhibHist',  label:'Exhibition History', field:'exhibitionHistory',        dbs:['aic','cleveland'],                                                             cat:'history',   type:'longtext',stage:'enrich',   pts:4,  bid:3,exh:5,trav:3,cur:2, cities:[],                                                          notes:'Full text. Parsed for exhibitionCount. Proven travel track record.'},
+  {id:'pubHist',    label:'Publication History',field:'publicationHistory',       dbs:['aic'],                                                                         cat:'history',   type:'longtext',stage:'enrich',   pts:2,  bid:3,exh:2,trav:0,cur:1, cities:[],                                                          notes:'AIC: scholarly publication list. Academic prestige signal.'},
+
+  // CROSS-REFERENCE
+  {id:'wikidataId', label:'Wikidata ID',        field:'wikidataId (Qxxxxx)',      dbs:['wikidata'],                                                                    cat:'crossref',  type:'string',  stage:'wikidata', pts:5,  bid:2,exh:2,trav:0,cur:2, cities:[],                                                          notes:'Linked data identifier. Cross-museum bridge. Enables SPARQL enrichment.'},
+  {id:'wdLocation', label:'Current Location',   field:'location (P276)',          dbs:['wikidata'],                                                                    cat:'crossref',  type:'string',  stage:'wikidata', pts:3,  bid:2,exh:3,trav:2,cur:1, cities:[],                                                          notes:'Wikidata P276. Where object is currently held.'},
+
+  // COMPUTED
+  {id:'clusterSz',  label:'Museum Count',       field:'museums.length (cluster)', dbs:['computed'],                                                                    cat:'computed',  type:'number',  stage:'cluster',  pts:100,bid:5,exh:4,trav:2,cur:3, cities:[],                                                          notes:'# museums with matching record. Exponential: 1→8, 2→50, 3→75, 4→90, 5+→100.'},
+  {id:'confidence', label:'Match Confidence',   field:'confidence (multiplier)',  dbs:['computed'],                                                                    cat:'computed',  type:'string',  stage:'cluster',  pts:0,  bid:0,exh:0,trav:0,cur:0, cities:[],                                                          notes:'Applied as multiplier to total score: exact=1.5×, high=1.25×, none=0.45×.'},
+  {id:'queryTitle', label:'Query Rel. (Title)', field:'queryTitle (pts)',         dbs:['computed'],                                                                    cat:'computed',  type:'number',  stage:'score',    pts:60, bid:0,exh:0,trav:0,cur:0, cities:[],                                                          notes:'Fuzzy title similarity to search query. Up to 60 pts. Ranking critical.'},
+  {id:'queryArtist',label:'Query Rel. (Artist)',field:'queryArtist (pts)',        dbs:['computed'],                                                                    cat:'computed',  type:'number',  stage:'score',    pts:40, bid:0,exh:0,trav:0,cur:0, cities:[],                                                          notes:'Artist name match to query. Up to 40 pts.'},
+  {id:'queryExact', label:'Query Exact Match',  field:'queryExact (pts)',         dbs:['computed'],                                                                    cat:'computed',  type:'bool',    stage:'score',    pts:20, bid:0,exh:0,trav:0,cur:0, cities:[],                                                          notes:'Exact last-name match between query and artist. Binary +20 pts.'},
+];
+
+// ── CITY DATA ──────────────────────────────────────────
+const CITIES = [
+  {name:'Paris', flag:'🇫🇷', sub:'Musée d\'Orsay · Louvre',
+   affinities:[
+     {tag:'French',         mult:2.0, color:'#3b82f6'},
+     {tag:'Impressionism',  mult:2.0, color:'#8b5cf6'},
+     {tag:'Post-Impressionism',mult:1.8,color:'#a855f7'},
+     {tag:'Art Nouveau',    mult:1.7, color:'#c084fc'},
+     {tag:'Rococo',         mult:1.6, color:'#ddd6fe'},
+   ],
+   strategy:'French + Impressionist paintings can stack 4× in Paris. Monet, Renoir, Pissarro are goldmines here.'},
+  {name:'Amsterdam', flag:'🇳🇱', sub:'Rijksmuseum · Van Gogh Museum',
+   affinities:[
+     {tag:'Dutch',          mult:2.0, color:'#f97316'},
+     {tag:'Golden Age',     mult:2.0, color:'#fb923c'},
+     {tag:'Flemish',        mult:1.8, color:'#fdba74'},
+     {tag:'Baroque',        mult:1.6, color:'#fde68a'},
+   ],
+   strategy:'Vermeer, Rembrandt, Hals dominate. Dutch Golden Age is the highest single-city affinity.'},
+  {name:'Tokyo', flag:'🇯🇵', sub:'Tokyo National Museum · Mori',
+   affinities:[
+     {tag:'Japanese',       mult:2.0, color:'#ef4444'},
+     {tag:'East Asian',     mult:1.7, color:'#f87171'},
+     {tag:'Impressionism',  mult:1.6, color:'#8b5cf6'},
+     {tag:'Ukiyo-e',        mult:1.9, color:'#fca5a5'},
+   ],
+   strategy:'Japanese prints get a massive boost. Also: Impressionists who were influenced by Japanese art (Monet, Van Gogh) get the Impressionism bonus.'},
+  {name:'New York', flag:'🇺🇸', sub:'MoMA · Metropolitan',
+   affinities:[
+     {tag:'American',       mult:1.9, color:'#06b6d4'},
+     {tag:'Modern',         mult:1.8, color:'#22d3ee'},
+     {tag:'Abstract',       mult:1.7, color:'#67e8f9'},
+     {tag:'Contemporary',   mult:1.7, color:'#a5f3fc'},
+   ],
+   strategy:'Modern + American art peaks here. Pollock, Warhol, Hopper all see large NYC bonuses.'},
+  {name:'London', flag:'🇬🇧', sub:'National Gallery · Tate',
+   affinities:[
+     {tag:'British',        mult:1.9, color:'#10b981'},
+     {tag:'Pre-Raphaelite', mult:1.8, color:'#34d399'},
+     {tag:'Romanticism',    mult:1.7, color:'#6ee7b7'},
+     {tag:'Turner-era',     mult:1.6, color:'#a7f3d0'},
+   ],
+   strategy:'Turner, Constable, Millais get strong London bonuses. Romantic landscapes also benefit.'},
+  {name:'Rome', flag:'🇮🇹', sub:'Vatican Museums · Borghese',
+   affinities:[
+     {tag:'Italian',        mult:2.0, color:'#f59e0b'},
+     {tag:'Renaissance',    mult:2.0, color:'#fbbf24'},
+     {tag:'Baroque',        mult:1.8, color:'#fcd34d'},
+     {tag:'Mannerism',      mult:1.7, color:'#fde68a'},
+     {tag:'Neoclassical',   mult:1.6, color:'#fef3c7'},
+   ],
+   strategy:'Italian Renaissance is the Rome double-2.0×. Raphael, Michelangelo, Caravaggio stack massively.'},
+  {name:'Madrid', flag:'🇪🇸', sub:'Prado · Reina Sofía',
+   affinities:[
+     {tag:'Spanish',        mult:2.0, color:'#dc2626'},
+     {tag:'Baroque',        mult:1.9, color:'#ef4444'},
+     {tag:'Surrealism',     mult:1.8, color:'#f87171'},
+     {tag:'Velázquez-era',  mult:1.7, color:'#fca5a5'},
+   ],
+   strategy:'Velázquez, Goya, Dalí, Picasso all peak in Madrid. Spanish Baroque + Surrealism stacks well.'},
+  {name:'Cairo', flag:'🇪🇬', sub:'Egyptian Museum · Mosque',
+   affinities:[
+     {tag:'Islamic',        mult:2.0, color:'#d97706'},
+     {tag:'Ancient Egyptian',mult:1.9,color:'#b45309'},
+     {tag:'Byzantine',      mult:1.6, color:'#92400e'},
+     {tag:'Coptic',         mult:1.5, color:'#78350f'},
+   ],
+   strategy:'Unique advantage: Ancient Egyptian artifacts get maximum bonus here. Islamic art also peaks.'},
+  {name:'Beijing', flag:'🇨🇳', sub:'Palace Museum · National Museum',
+   affinities:[
+     {tag:'Chinese',        mult:2.0, color:'#dc2626'},
+     {tag:'East Asian',     mult:2.0, color:'#ef4444'},
+     {tag:'Buddhist',       mult:1.7, color:'#f87171'},
+     {tag:'Imperial',       mult:1.6, color:'#fca5a5'},
+   ],
+   strategy:'Chinese porcelain, scroll painting, Buddhist sculpture dominate here. Best for Met Asian works.'},
+  {name:'São Paulo', flag:'🇧🇷', sub:'MASP · Instituto Moreira',
+   affinities:[
+     {tag:'Latin American', mult:2.0, color:'#16a34a'},
+     {tag:'Modern',         mult:1.6, color:'#22c55e'},
+     {tag:'Baroque',        mult:1.5, color:'#4ade80'},
+     {tag:'Brazilian',      mult:1.9, color:'#86efac'},
+   ],
+   strategy:'Underutilized city. Latin American art is nearly exclusive here. Frida Kahlo works get massive bonus.'},
+  {name:'Berlin', flag:'🇩🇪', sub:'Gemäldegalerie · Neue Nationalgalerie',
+   affinities:[
+     {tag:'German',         mult:1.9, color:'#6b7280'},
+     {tag:'Expressionism',  mult:2.0, color:'#9ca3af'},
+     {tag:'Bauhaus',        mult:1.9, color:'#d1d5db'},
+     {tag:'Romanticism',    mult:1.7, color:'#e5e7eb'},
+     {tag:'New Objectivity',mult:1.6, color:'#f3f4f6'},
+   ],
+   strategy:'Expressionism double-2.0× potential with German origin. Kirchner, Klee, Beckmann all peak here.'},
+  {name:'Moscow', flag:'🇷🇺', sub:'Tretyakov · Pushkin',
+   affinities:[
+     {tag:'Russian',        mult:2.0, color:'#7c3aed'},
+     {tag:'Avant-garde',    mult:1.9, color:'#8b5cf6'},
+     {tag:'Constructivism', mult:1.9, color:'#a78bfa'},
+     {tag:'Realism',        mult:1.7, color:'#c4b5fd'},
+     {tag:'Socialist Realism',mult:1.5,color:'#ddd6fe'},
+   ],
+   strategy:'Russian avant-garde is uniquely powerful here. Kandinsky, Malevich, Popova generate maximum value.'},
+];
+
+// ── FORMULA COMPONENTS ────────────────────────────────
+const FORMULA_MAX = 490;
+const FORMULA_COMPONENTS = [
+  {section:'Query Relevance (Ranking)'},
+  {label:'Title similarity to query',      pts:60,  color:'#6366f1', note:'fuzzy 0–1 × 60'},
+  {label:'Artist match to query',          pts:40,  color:'#818cf8', note:'fuzzy 0–1 × 40'},
+  {label:'Exact artist last name match',   pts:20,  color:'#a5b4fc', note:'binary +20'},
+  {section:'Cross-Museum Consensus'},
+  {label:'Museum count (exponential)',     pts:100, color:'#f97316', note:'1→8, 2→50, 3→75, 4→90, 5+→100'},
+  {section:'Highlight & Visibility'},
+  {label:'isHighlight (Met)',              pts:15,  color:'#ef4444', note:'binary'},
+  {label:'isOnView',                       pts:8,   color:'#f87171', note:'binary, 4 sources'},
+  {label:'galleryTitle',                   pts:3,   color:'#fca5a5', note:'string'},
+  {section:'Thematic Coverage'},
+  {label:'Tags (Met, capped)',             pts:12,  color:'#10b981', note:'array, max 12'},
+  {label:'Subject titles (AIC, capped)',   pts:8,   color:'#34d399', note:'array, max 8'},
+  {label:'Classification titles (AIC)',    pts:8,   color:'#6ee7b7', note:'array, max 8'},
+  {label:'Wall description (Cleveland)',   pts:6,   color:'#a7f3d0', note:'longtext'},
+  {label:'Fun fact (Cleveland)',           pts:4,   color:'#d1fae5', note:'string'},
+  {label:'IconClass (Rijks)',              pts:4,   color:'#ecfdf5', note:'string'},
+  {label:'Inscriptions (AIC)',             pts:2,   color:'#f0fdf4', note:'string'},
+  {section:'Visual & Color'},
+  {label:'Color swatches (Rijks)',         pts:8,   color:'#f59e0b', note:'color array'},
+  {label:'Color swatches (Harvard)',       pts:5,   color:'#fbbf24', note:'color array'},
+  {label:'Colorfulness score (AIC)',       pts:4,   color:'#fcd34d', note:'0–100'},
+  {label:'Dominant color (AIC)',           pts:3,   color:'#fde68a', note:'hex'},
+  {section:'Cultural Metadata'},
+  {label:'Art movement / style',           pts:6,   color:'#8b5cf6', note:'from AIC / Wikidata'},
+  {label:'Culture',                        pts:5,   color:'#a855f7', note:'4 sources'},
+  {label:'Wikidata ID',                    pts:5,   color:'#c084fc', note:'linked data'},
+  {label:'Medium',                         pts:5,   color:'#d8b4fe', note:'3 sources'},
+  {label:'Historical persons (Rijks)',     pts:5,   color:'#ede9fe', note:'array'},
+  {label:'Period',                         pts:4,   color:'#f5f3ff', note:'4 sources'},
+  {label:'Genre (Wikidata)',               pts:4,   color:'#ede9fe', note:'P136'},
+  {label:'Materials (Rijks)',              pts:4,   color:'#ddd6fe', note:'array'},
+  {label:'Techniques',                     pts:4,   color:'#c4b5fd', note:'2 sources'},
+  {label:'Material (Wikidata)',            pts:4,   color:'#a78bfa', note:'P186'},
+  {label:'Dynasty (Met)',                  pts:3,   color:'#8b5cf6', note:'string'},
+  {label:'Artist nationality',             pts:3,   color:'#7c3aed', note:'2 sources'},
+  {label:'Origin / place of origin',       pts:3,   color:'#6d28d9', note:'2 sources'},
+  {label:'Production places (Rijks)',      pts:3,   color:'#5b21b6', note:'array'},
+  {label:'Dimensions (Met)',               pts:3,   color:'#4c1d95', note:'string'},
+  {label:'Wikidata location (P276)',       pts:3,   color:'#3b0764', note:'string'},
+  {section:'Demand Signals'},
+  {label:'Total page views (Harvard)',     pts:10,  color:'#06b6d4', note:'numeric'},
+  {label:'Harvard rank',                   pts:8,   color:'#22d3ee', note:'numeric'},
+  {label:'Exhibition count',               pts:6,   color:'#67e8f9', note:'2 sources'},
+  {label:'Publication count (Harvard)',    pts:4,   color:'#a5f3fc', note:'numeric'},
+  {section:'Provenance'},
+  {label:'Provenance text',               pts:6,   color:'#ec4899', note:'3 sources'},
+  {label:'Credit line',                   pts:2,   color:'#f9a8d4', note:'5 sources'},
+  {label:'Accession year',               pts:2,   color:'#fce7f3', note:'2 sources'},
+  {section:'Exhibition & Publication History'},
+  {label:'Exhibition history (text)',      pts:4,   color:'#14b8a6', note:'2 sources'},
+  {label:'Publication history (AIC)',      pts:2,   color:'#5eead4', note:'longtext'},
+  {label:'Constituents (Met)',             pts:2,   color:'#99f6e4', note:'array'},
+];
+
+// ══════════════════════════════════════════════════════════
+//  STATE & RENDER
+// ══════════════════════════════════════════════════════════
+
+let sortKey = 'pts', sortDir = -1;
+let activeDbs = new Set(['met','aic','rijks','harvard','cleveland','smithsonian','europeana','wikidata','computed']);
+let catFilter = '', stageFilter = '', phaseFilter = '';
+
+function phaseBar(val, color) {
+  const w = Math.round((val/5)*100);
+  return `<div class="phase-bar-wrap"><div class="phase-bar" style="width:${w}%;background:${color}"></div><span class="phase-val">${val}</span></div>`;
+}
+
+function ptsBar(pts) {
+  if (!pts) return '';
+  const w = Math.min(100, Math.round((pts / FORMULA_MAX) * 100 * 2));
+  return `<div class="pts-bar" style="width:${w}px"></div>`;
+}
+
+function renderMatrix() {
+  const body = document.getElementById('matrix-body');
+  let rows = FIELDS.filter(f => {
+    if (catFilter && f.cat !== catFilter) return false;
+    if (stageFilter && f.stage !== stageFilter) return false;
+    if (phaseFilter) {
+      const map = {bid:'bid',exh:'exh',trav:'trav',cur:'cur'};
+      if (f[map[phaseFilter]] < 3) return false;
+    }
+    // DB filter: show if any of field's dbs is active, or if computed and computed active
+    const fDbs = f.dbs.length === 0 ? ['computed'] : f.dbs;
+    return fDbs.some(d => activeDbs.has(d));
+  });
+
+  rows.sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return -sortDir;
+    if (av > bv) return sortDir;
+    return 0;
+  });
+
+  document.getElementById('stats-bar').innerHTML = `<strong>${rows.length}</strong> of ${FIELDS.length} fields shown`;
+  document.getElementById('field-count').textContent = FIELDS.length;
+
+  body.innerHTML = rows.map(f => {
+    const cat = CAT_META[f.cat] || {};
+    const stColor = STAGE_COLOR[f.stage] || '#666';
+    const fDbs = f.dbs.length === 0 ? ['computed'] : f.dbs;
+    const dbTags = fDbs.map(d => {
+      const dm = DB_META[d] || {label:d, color:'#555', textColor:'#fff'};
+      return `<span class="db-tag" style="background:${dm.color};color:${dm.textColor}">${dm.label}</span>`;
+    }).join('');
+    const pts = f.pts;
+    const ptsColor = pts >= 50 ? '#ef4444' : pts >= 10 ? '#f59e0b' : pts >= 5 ? '#10b981' : '#6b7280';
+
+    const cities = f.cities.length ? f.cities.slice(0,4).join(', ') + (f.cities.length > 4 ? ` +${f.cities.length-4}` : '') : '—';
+
+    return `<tr>
+      <td>
+        <div class="field-label">${f.label}</div>
+        <div class="field-name">${f.field}</div>
+      </td>
+      <td><div class="db-tags">${dbTags}</div></td>
+      <td><span class="cat-badge" style="background:${cat.color}22;color:${cat.color}">${cat.label||f.cat}</span></td>
+      <td><span class="type-badge">${f.type}</span></td>
+      <td><span class="stage-badge" style="color:${stColor};border-color:${stColor}44">${f.stage}</span></td>
+      <td class="pts-cell">
+        <div class="pts-num" style="color:${ptsColor}">${pts || '—'}</div>
+        ${pts ? ptsBar(pts) : ''}
+      </td>
+      <td>
+        <div class="phase-grid">
+          <div class="phase-cell"><div class="phase-lbl" style="color:var(--bid)">BID</div>${phaseBar(f.bid,'var(--bid)')}</div>
+          <div class="phase-cell"><div class="phase-lbl" style="color:var(--exh)">EXH</div>${phaseBar(f.exh,'var(--exh)')}</div>
+          <div class="phase-cell"><div class="phase-lbl" style="color:var(--trav)">TRV</div>${phaseBar(f.trav,'var(--trav)')}</div>
+          <div class="phase-cell"><div class="phase-lbl" style="color:var(--cur)">CUR</div>${phaseBar(f.cur,'var(--cur)')}</div>
+        </div>
+      </td>
+      <td class="cities-cell">${cities}</td>
+      <td class="notes-cell">${f.notes}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCities() {
+  document.getElementById('city-grid').innerHTML = CITIES.map(city => {
+    const rows = city.affinities.map(a => {
+      const pct = Math.round(((a.mult - 1) / 1.2) * 100);
+      return `<div class="affinity-row">
+        <span class="affinity-tag" style="background:${a.color}22;color:${a.color}">${a.tag}</span>
+        <span class="affinity-mult" style="color:${a.color}">${a.mult.toFixed(1)}×</span>
+        <div class="affinity-bar-bg"><div class="affinity-bar" style="width:${pct}%;background:${a.color}"></div></div>
+      </div>`;
+    }).join('');
+    return `<div class="city-card">
+      <div class="city-header">
+        <div class="city-flag">${city.flag}</div>
+        <div><div class="city-name">${city.name}</div><div class="city-sub">${city.sub}</div></div>
+      </div>
+      <div class="affinity-list">${rows}</div>
+      <div class="city-strategy"><strong>Strategy:</strong> ${city.strategy}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderFormula() {
+  const container = document.getElementById('formula-components');
+  container.innerHTML = FORMULA_COMPONENTS.map(c => {
+    if (c.section) return `<div class="formula-section-head">${c.section}</div>`;
+    const pct = Math.min(100, Math.round((c.pts / FORMULA_MAX) * 100 * 2.5));
+    return `<div class="formula-row">
+      <span class="formula-label">${c.label}</span>
+      <span class="formula-pts">+${c.pts}</span>
+      <div class="formula-bar-bg"><div class="formula-bar-fill" style="width:${pct}%;background:${c.color}"></div></div>
+      <span class="formula-note">${c.note}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderHeatmap() {
+  const DBS = ['met','aic','rijks','harvard','cleveland','smithsonian','europeana','wikidata'];
+  const CATS = Object.keys(CAT_META).filter(c => c !== 'computed');
+
+  // Count fields per db per cat
+  const counts = {};
+  DBS.forEach(db => { counts[db] = {}; CATS.forEach(cat => { counts[db][cat] = 0; }); });
+  FIELDS.forEach(f => {
+    if (f.cat === 'computed') return;
+    f.dbs.forEach(db => { if (counts[db] && counts[db][f.cat] !== undefined) counts[db][f.cat]++; });
+  });
+
+  // Max for normalization
+  const allVals = [];
+  DBS.forEach(db => CATS.forEach(cat => allVals.push(counts[db][cat])));
+  const maxVal = Math.max(...allVals);
+
+  const legend = document.getElementById('heat-legend');
+  legend.innerHTML = DBS.map(db => {
+    const dm = DB_META[db];
+    return `<div class="heat-legend-item"><div class="heat-swatch" style="background:${dm.color}"></div>${dm.label}</div>`;
+  }).join('');
+
+  const tbl = document.getElementById('heat-table');
+  const header = `<tr><th></th>${CATS.map(c => `<th>${CAT_META[c].label.replace(/\//g,'<br>')}</th>`).join('')}</tr>`;
+  const rows = DBS.map(db => {
+    const dm = DB_META[db];
+    const cells = CATS.map(cat => {
+      const n = counts[db][cat];
+      const intensity = n === 0 ? 0 : 0.15 + (n / maxVal) * 0.85;
+      const bg = n === 0 ? '#1c2030' : hexAlpha(dm.color, intensity);
+      const textColor = n === 0 ? '#3a3f55' : (intensity > 0.5 ? dm.textColor : dm.color);
+      return `<td><div class="heat-cell" style="background:${bg};color:${textColor}" title="${dm.label}: ${n} fields in ${CAT_META[cat].label}">
+        <span class="hc-num">${n || '·'}</span>
+      </div></td>`;
+    }).join('');
+    return `<tr><td class="heat-db-lbl" style="color:${dm.color}">${dm.label}</td>${cells}</tr>`;
+  }).join('');
+
+  tbl.innerHTML = header + rows;
+}
+
+function hexAlpha(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ── EVENTS ─────────────────────────────────────────────
+document.getElementById('nav').addEventListener('click', e => {
+  const t = e.target.closest('.tab');
+  if (!t) return;
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+});
+
+document.getElementById('db-filter').addEventListener('click', e => {
+  const p = e.target.closest('.pill');
+  if (!p) return;
+  p.classList.toggle('on');
+  if (p.classList.contains('on')) activeDbs.add(p.dataset.db);
+  else activeDbs.delete(p.dataset.db);
+  renderMatrix();
+});
+
+document.getElementById('cat-filter').addEventListener('change', e => { catFilter = e.target.value; renderMatrix(); });
+document.getElementById('stage-filter').addEventListener('change', e => { stageFilter = e.target.value; renderMatrix(); });
+document.getElementById('phase-filter').addEventListener('change', e => { phaseFilter = e.target.value; renderMatrix(); });
+
+document.querySelector('#matrix-table thead').addEventListener('click', e => {
+  const th = e.target.closest('th');
+  if (!th || !th.dataset.sort) return;
+  const key = th.dataset.sort;
+  if (sortKey === key) { sortDir *= -1; }
+  else { sortKey = key; sortDir = -1; }
+  document.querySelectorAll('th').forEach(h => h.classList.remove('sorted'));
+  th.classList.add('sorted');
+  const arrow = th.querySelector('.arrow');
+  if (arrow) arrow.textContent = sortDir === -1 ? '↓' : '↑';
+  renderMatrix();
+});
+
+// ── INIT ───────────────────────────────────────────────
+renderMatrix();
+renderCities();
+renderFormula();
+renderHeatmap();
+</script>
+</body>
+</html>
