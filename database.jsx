@@ -734,6 +734,24 @@ async function poolLoad(){
 // ═══════════════════════════════════════════════════════════════════════════════
 // MODULE: FETCHERS
 // ═══════════════════════════════════════════════════════════════════════════════
+// Strips "(Nationality, YYYY–YYYY)" from Met/AIC display strings and extracts metadata.
+// Returns { name, nationality, beginDate, endDate } — all nullable except name.
+function parseArtistDisplay(str) {
+  if (!str) return { name: null, nationality: null, beginDate: null, endDate: null };
+  // AIC: "Name\nNationality, YYYY–YYYY"
+  const nl = str.indexOf('\n');
+  if (nl > 0) {
+    const name = str.slice(0, nl).trim();
+    const meta = str.slice(nl + 1).trim();
+    const m = meta.match(/^([A-Za-z][^,\d]*?)(?:,\s*(?:born\s+)?(\d{4})(?:\s*[–\-]\s*(\d{4}))?)?$/);
+    return { name, nationality: (m ? m[1].trim() : meta) || null, beginDate: m?.[2] || null, endDate: m?.[3] || null };
+  }
+  // Met: "Name (Nationality, YYYY–YYYY)" or "Name (Nationality)"
+  const m = str.match(/^(.*?)\s*\(([A-Z][a-z][^,)0-9]{0,25}?)(?:,\s*(?:born\s+)?(\d{4})(?:\s*[–\-]\s*(\d{4}))?)?\)\s*$/);
+  if (m && m[2]) return { name: m[1].trim(), nationality: m[2].trim(), beginDate: m[3] || null, endDate: m[4] || null };
+  return { name: str.trim(), nationality: null, beginDate: null, endDate: null };
+}
+
 const mkArt=(id,title,artist,date,imageUrl,source,extra={})=>({
   id:String(id||Math.random().toString(36).slice(2)),
   title:title||'Untitled', artist:artist||'Unknown', date:date||'N/A',
@@ -763,7 +781,7 @@ function makeFetchers(credits) {
         for(let i=0;i<ids.length;i+=8){
           const batch=ids.slice(i,i+8); credits.record('met','req',batch.length);
           const settled=await Promise.allSettled(batch.map(id=>fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`).then(r=>r.json())));
-          settled.forEach(r=>{if(r.status==='fulfilled'&&r.value.primaryImage){const d=r.value;res.push(mkArt(d.objectID,d.title,d.artistDisplayName,d.objectDate,d.primaryImage,'met',{
+          settled.forEach(r=>{if(r.status==='fulfilled'&&r.value.primaryImage){const d=r.value;const _ap=parseArtistDisplay(d.artistDisplayName);res.push(mkArt(d.objectID,d.title,_ap.name||d.artistDisplayName,d.objectDate,d.primaryImage,'met',{
             medium:d.medium,
             dimensions:`${d.objectHeight||''}×${d.objectWidth||''}`,
             culture:d.culture||null,
@@ -811,7 +829,7 @@ function makeFetchers(credits) {
         try{
           const r=await fetch(`https://api.artic.edu/api/v1/artworks/search?q=${encodeURIComponent(q)}&query[term][artwork_type_id]=1&page=${p}&limit=60&fields=id,title,artist_display,date_display,image_id,medium_display,dimensions`).then(r=>r.json());
           const items=r.data||[]; credits.record('aic','res',items.length);
-          items.forEach(x=>res.push(mkArt(x.id,x.title,x.artist_display,x.date_display,x.image_id?`https://www.artic.edu/iiif/2/${x.image_id}/full/843,/0/default.jpg`:null,'aic',{medium:x.medium_display,dimensions:x.dimensions})));
+          items.forEach(x=>{const _ap=parseArtistDisplay(x.artist_display);res.push(mkArt(x.id,x.title,_ap.name||x.artist_display,x.date_display,x.image_id?`https://www.artic.edu/iiif/2/${x.image_id}/full/843,/0/default.jpg`:null,'aic',{medium:x.medium_display,dimensions:x.dimensions,artistNationality:_ap.nationality||null,artistBeginDate:_ap.beginDate||null,artistEndDate:_ap.endDate||null}));});
         }catch{credits.record('aic','err',1);}
       }
       return res;
@@ -1036,6 +1054,39 @@ function scoreRichness(cluster, query='', matcher=null){
 // - A well-documented French Impressionist can reach 4.0× in Paris (culture × movement)
 // - Works with zero cultural metadata get the baseline 1.0× everywhere (no penalty)
 // ═══════════════════════════════════════════════════════════════════════════════
+// City keywords found in provenance/exhibition/publication text → soft boost.
+// These are intentionally conservative (max 1.3×) so text never dominates over hard metadata.
+const CITY_TEXT_HINTS = {
+  paris:     ['paris','versailles','louvre','france','french'],
+  amsterdam: ['amsterdam','netherlands','dutch','holland','rijksmuseum'],
+  new_york:  ['new york','nyc','manhattan','durand-ruel new york','sotheby\'s new york','christie\'s new york'],
+  london:    ['london','england','british','tate','national gallery london'],
+  berlin:    ['berlin','germany','german','munich','munich'],
+  chicago:   ['chicago','art institute of chicago'],
+  rome:      ['rome','italy','italian','naples','milan'],
+  madrid:    ['madrid','spain','spanish','prado'],
+  moscow:    ['moscow','russia','russian','st. petersburg','hermitage'],
+  vienna:    ['vienna','austria','austrian','kunsthistorisches'],
+  florence:  ['florence','florentine','uffizi','tuscany'],
+  tokyo:     ['tokyo','japan','japanese','kyoto','osaka'],
+  beijing:   ['beijing','china','chinese','shanghai'],
+  istanbul:  ['istanbul','ottoman','constantinople','turkey','turkish'],
+  cairo:     ['cairo','egypt','egyptian'],
+  sao_paulo: ['são paulo','sao paulo','brazil','brazilian','rio de janeiro'],
+  seoul:     ['seoul','korea','korean'],
+  mumbai:    ['mumbai','india','indian','delhi','calcutta'],
+};
+function textCityBoost(cluster, cityKey) {
+  const hints = CITY_TEXT_HINTS[cityKey];
+  if (!hints) return 1.0;
+  const text = [cluster.provenanceText, cluster.exhibitionHistory, cluster.publicationHistory]
+    .filter(s => typeof s === 'string').join(' ').toLowerCase();
+  if (!text) return 1.0;
+  let hits = 0;
+  for (const h of hints) { let i = 0; while ((i = text.indexOf(h, i)) !== -1) { hits++; i += h.length; } }
+  return hits >= 5 ? 1.3 : hits >= 2 ? 1.15 : hits >= 1 ? 1.05 : 1.0;
+}
+
 function computeCityScore(cluster, cityKey) {
   const city = CITY_AFFINITIES[cityKey];
   if (!city) return { mult:1.0, adjusted:100, factors:[], tier:'D', name:'?', flag:'' };
@@ -1080,6 +1131,9 @@ function computeCityScore(cluster, cityKey) {
   const identity = Math.max(cM, nM, oM);
   let mult = identity * mM;
   if (dynastyMult > 1.0) mult = mult * (1 + (dynastyMult - 1) * 0.6);
+  // Provenance / exhibition text mentions — soft final layer
+  const tB = textCityBoost(cluster, cityKey);
+  if (tB > 1.0) { mult *= tB; factors.push({ field:'text', value:`provenance/exhibition mentions`, matched:cityKey, mult:tB }); }
   mult = Math.round(Math.min(4.5, mult) * 100) / 100;
 
   const adjusted = Math.round(100 * mult);
@@ -1424,7 +1478,7 @@ async function fetchBrowseArtworks(){
       .then(r=>r.json()).then(r=>(r.records||[]).map(x=>mkArt(x.id,x.title,x.people?.[0]?.name,x.dated,x.primaryimageurl,'harvard',{medium:x.technique,dimensions:x.dimensions}))).catch(()=>[]),
     // AIC — most-viewed paintings (editorial sort)
     fetch(`https://api.artic.edu/api/v1/artworks?query[term][artwork_type_id]=1&sort[total_views][order]=desc&limit=60&fields=id,title,artist_display,date_display,image_id,medium_display,dimensions`)
-      .then(r=>r.json()).then(r=>(r.data||[]).map(x=>mkArt(x.id,x.title,x.artist_display,x.date_display,x.image_id?`https://www.artic.edu/iiif/2/${x.image_id}/full/843,/0/default.jpg`:null,'aic',{medium:x.medium_display,dimensions:x.dimensions}))).catch(()=>[]),
+      .then(r=>r.json()).then(r=>(r.data||[]).map(x=>{const _ap=parseArtistDisplay(x.artist_display);return mkArt(x.id,x.title,_ap.name||x.artist_display,x.date_display,x.image_id?`https://www.artic.edu/iiif/2/${x.image_id}/full/843,/0/default.jpg`:null,'aic',{medium:x.medium_display,dimensions:x.dimensions,artistNationality:_ap.nationality||null,artistBeginDate:_ap.beginDate||null,artistEndDate:_ap.endDate||null});})).catch(()=>[]),
     // Cleveland — full collection browse, no query
     fetch(`https://openaccess-api.clevelandart.org/api/artworks/?type=Painting&has_image=1&limit=60`)
       .then(r=>r.json()).then(r=>(r.data||[]).map(x=>mkArt(x.id,x.title,x.creators?.[0]?.description,x.creation_date,x.images?.web?.url,'cleveland',{medium:x.technique,dimensions:x.measurements}))).catch(()=>[]),
@@ -2980,7 +3034,7 @@ export default function ArtNexus() {
 
             <div style={{display:'grid',gridTemplateColumns:'300px 1fr',maxHeight:'82vh',overflow:'hidden'}}>
               {/* Left: image + richness + badges */}
-              <div style={{borderRight:'1px solid #111120',overflowY:'auto'}}>
+              <div style={{borderRight:'1px solid #111120',overflowY:'auto'}} onWheel={e=>e.stopPropagation()}>
                 {selected.imageUrl&&(
                   <img src={selected.imageUrl} alt={selected.title}
                     style={{width:'100%',maxHeight:300,objectFit:'contain',background:'#06060e',display:'block'}}/>
@@ -3034,7 +3088,7 @@ export default function ArtNexus() {
               </div>
 
               {/* Right: full metadata */}
-              <div style={{overflowY:'auto',padding:'10px 14px'}}>
+              <div style={{overflowY:'auto',padding:'10px 14px'}} onWheel={e=>e.stopPropagation()}>
 
                 {/* ── IDENTITY ── */}
                 <SectionHead label="IDENTITY"/>
