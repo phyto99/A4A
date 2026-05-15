@@ -100,7 +100,7 @@ input,button,select,textarea{font-family:'DM Sans',sans-serif}
 // ═══════════════════════════════════════════════════════════════════════════════
 const API_KEYS = {
   harvard:     'a3035be7-f66f-43fe-9062-4ab34c9a3875',
-  rijks:       'xAxpy36Q',
+  rijks:       null,   // key expired (410 Gone) — set a valid key from data.rijksmuseum.nl to re-enable
   smithsonian: 'Za1PpHOkwo3bCWaBVJzP68yM8Fr61aSeUMnMaUgc',
   europeana:   'athtyllial',
 };
@@ -752,6 +752,7 @@ function makeFetchers(credits) {
       }catch{credits.record('met','err',1);return[];}
     },
     rijks: async (q, deep) => {
+      if (!API_KEYS.rijks) return []; // key not configured
       const queries=expandQuery(q).slice(0,deep?3:2); const res=[];
       for(const qq of queries) for(const p of (deep?[1,2]:[1])){
         credits.record('rijks','req',1);
@@ -1008,7 +1009,8 @@ function computeCityScore(cluster, cityKey) {
   // Mutates factors[] as a side-effect (only adds entries when mult > 1.0).
   function bestMatch(val, dict, fieldLabel) {
     if (!val || !dict) return 1.0;
-    const v = val.toLowerCase();
+    const v = (typeof val === 'string' ? val : String(val)).toLowerCase();
+    if (!v) return 1.0;
     let top = 1.0, topKey = '';
     for (const [k, m] of Object.entries(dict)) {
       if (v.includes(k) && m > top) { top = m; topKey = k; }
@@ -1222,8 +1224,8 @@ async function fetchDetail(source, id, credits) {
         credits.record('cleveland','res',1);
         const d=r.data; if(!d) return null;
         return {
-          provenanceText:    d.provenance||null,
-          exhibitionHistory: Array.isArray(d.exhibitions)?d.exhibitions.map(e=>e.title||e).join('\n'):null,
+          provenanceText:    Array.isArray(d.provenance)?d.provenance.map(p=>typeof p==='string'?p:(p.description||'').trim()).filter(Boolean).join('\n'):(d.provenance||null),
+          exhibitionHistory: Array.isArray(d.exhibitions)?d.exhibitions.map(e=>typeof e==='string'?e:(e.title||e.description||'')).filter(Boolean).join('\n'):null,
           exhibitionCount:   Array.isArray(d.exhibitions)?d.exhibitions.length:0,
           creditLine:        d.creditline||null,
           culture:           d.culture||null,
@@ -3001,7 +3003,7 @@ export default function ArtNexus() {
                 {selected.provenanceText&&(
                   <div style={{marginBottom:6}}>
                     <div style={{fontSize:9,color:'#2a2a40',marginBottom:3,fontFamily:'IBM Plex Mono',letterSpacing:'0.04em'}}>Provenance</div>
-                    <div style={{fontSize:10,color:'#5a5a78',lineHeight:1.5,background:'#08080e',border:'1px solid #0f0f1e',borderRadius:3,padding:'6px 8px',maxHeight:80,overflowY:'auto'}}>{selected.provenanceText}</div>
+                    <div style={{fontSize:10,color:'#5a5a78',lineHeight:1.5,background:'#08080e',border:'1px solid #0f0f1e',borderRadius:3,padding:'6px 8px',maxHeight:80,overflowY:'auto'}}>{typeof selected.provenanceText==='string'?selected.provenanceText:JSON.stringify(selected.provenanceText)}</div>
                   </div>
                 )}
 
@@ -3009,7 +3011,7 @@ export default function ArtNexus() {
                 {selected.exhibitionHistory&&(
                   <>
                     <SectionHead label="EXHIBITION HISTORY"/>
-                    <div style={{fontSize:10,color:'#5a5a78',lineHeight:1.5,background:'#08080e',border:'1px solid #0f0f1e',borderRadius:3,padding:'6px 8px',maxHeight:100,overflowY:'auto'}}>{selected.exhibitionHistory}</div>
+                    <div style={{fontSize:10,color:'#5a5a78',lineHeight:1.5,background:'#08080e',border:'1px solid #0f0f1e',borderRadius:3,padding:'6px 8px',maxHeight:100,overflowY:'auto'}}>{typeof selected.exhibitionHistory==='string'?selected.exhibitionHistory:JSON.stringify(selected.exhibitionHistory)}</div>
                   </>
                 )}
 
@@ -3017,7 +3019,7 @@ export default function ArtNexus() {
                 {selected.publicationHistory&&(
                   <>
                     <SectionHead label="PUBLICATION HISTORY"/>
-                    <div style={{fontSize:10,color:'#5a5a78',lineHeight:1.5,background:'#08080e',border:'1px solid #0f0f1e',borderRadius:3,padding:'6px 8px',maxHeight:80,overflowY:'auto'}}>{selected.publicationHistory}</div>
+                    <div style={{fontSize:10,color:'#5a5a78',lineHeight:1.5,background:'#08080e',border:'1px solid #0f0f1e',borderRadius:3,padding:'6px 8px',maxHeight:80,overflowY:'auto'}}>{typeof selected.publicationHistory==='string'?selected.publicationHistory:JSON.stringify(selected.publicationHistory)}</div>
                   </>
                 )}
 
