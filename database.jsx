@@ -695,6 +695,43 @@ function expandQuery(query) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MODULE: DISCOVERY POOL  (IndexedDB — grows as user searches/browses)
+// ═══════════════════════════════════════════════════════════════════════════════
+const _POOL_DB='a4a-discover-pool';
+function _poolOpen(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(_POOL_DB,1);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('artworks'))
+        db.createObjectStore('artworks',{keyPath:'_k'});
+    };
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=()=>rej(req.error);
+  });
+}
+async function poolSave(artworks){
+  try{
+    const db=await _poolOpen();
+    const tx=db.transaction('artworks','readwrite');
+    const st=tx.objectStore('artworks');
+    artworks.forEach(a=>{if(a.source&&a.id)st.put({...a,_k:`${a.source}:${a.id}`});});
+    await new Promise(r=>{tx.oncomplete=r;tx.onerror=r;});
+    db.close();
+  }catch(e){/* silent */}
+}
+async function poolLoad(){
+  try{
+    const db=await _poolOpen();
+    const tx=db.transaction('artworks','readonly');
+    const st=tx.objectStore('artworks');
+    const all=await new Promise((res,rej)=>{const q=st.getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
+    db.close();
+    return all.map(({_k,...rest})=>rest);
+  }catch(e){return[];}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MODULE: FETCHERS
 // ═══════════════════════════════════════════════════════════════════════════════
 const mkArt=(id,title,artist,date,imageUrl,source,extra={})=>({
@@ -1375,6 +1412,63 @@ function buildClusters(artworks, matcher, pHashEngine, fpMap, wikidataItems){
     clusters.push(cl);
   });
   return clusters;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE: BROWSE — native-sorted endpoints, no search query needed
+// ═══════════════════════════════════════════════════════════════════════════════
+async function fetchBrowseArtworks(){
+  const settled=await Promise.allSettled([
+    // Harvard — most-viewed paintings first
+    fetch(`https://api.harvardartmuseums.org/object?classification=Paintings&sort=totalpageviews&sortorder=desc&size=60&fields=id,title,people,dated,primaryimageurl,technique,dimensions&apikey=${API_KEYS.harvard}`)
+      .then(r=>r.json()).then(r=>(r.records||[]).map(x=>mkArt(x.id,x.title,x.people?.[0]?.name,x.dated,x.primaryimageurl,'harvard',{medium:x.technique,dimensions:x.dimensions}))).catch(()=>[]),
+    // AIC — most-viewed paintings (editorial sort)
+    fetch(`https://api.artic.edu/api/v1/artworks?query[term][artwork_type_id]=1&sort[total_views][order]=desc&limit=60&fields=id,title,artist_display,date_display,image_id,medium_display,dimensions`)
+      .then(r=>r.json()).then(r=>(r.data||[]).map(x=>mkArt(x.id,x.title,x.artist_display,x.date_display,x.image_id?`https://www.artic.edu/iiif/2/${x.image_id}/full/843,/0/default.jpg`:null,'aic',{medium:x.medium_display,dimensions:x.dimensions}))).catch(()=>[]),
+    // Cleveland — full collection browse, no query
+    fetch(`https://openaccess-api.clevelandart.org/api/artworks/?type=Painting&has_image=1&limit=60`)
+      .then(r=>r.json()).then(r=>(r.data||[]).map(x=>mkArt(x.id,x.title,x.creators?.[0]?.description,x.creation_date,x.images?.web?.url,'cleveland',{medium:x.technique,dimensions:x.measurements}))).catch(()=>[]),
+    // Met — curated editorial highlights
+    fetch(`https://collectionapi.metmuseum.org/public/collection/v1/search?isHighlight=true&q=painting&hasImages=true`)
+      .then(r=>r.json()).then(async r=>{
+        const ids=(r.objectIDs||[]).slice(0,50); const res=[];
+        for(let i=0;i<ids.length;i+=8){
+          const batch=ids.slice(i,i+8);
+          const items=await Promise.allSettled(batch.map(id=>fetch(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`).then(r=>r.json())));
+          items.forEach(r=>{if(r.status==='fulfilled'&&r.value.primaryImage){const d=r.value;
+            res.push(mkArt(d.objectID,d.title,d.artistDisplayName,d.objectDate,d.primaryImage,'met',{
+              medium:d.medium,culture:d.culture||null,isHighlight:true,isPublicDomain:!!d.isPublicDomain,
+              creditLine:d.creditLine||null,tags:(d.tags||[]).map(t=>t.term||String(t)).filter(Boolean),
+              objectURL:d.objectURL||null,isOnView:!!(d.GalleryNumber),galleryTitle:d.GalleryNumber?`Gallery ${d.GalleryNumber}`:null,
+            }));
+          }});
+        }
+        return res;
+      }).catch(()=>[]),
+  ]);
+  return dedup(settled.flatMap(r=>r.status==='fulfilled'?r.value:[]));
+}
+
+async function runBrowse(credits, poolArtworks=[]){
+  const matcher=new Matcher(), fp=new Fingerprinter();
+  const pHashStub={hamming:()=>999}; // skip cross-image matching for browse speed
+  const fresh=await fetchBrowseArtworks();
+  const merged=dedup([...fresh,...poolArtworks]);
+  const fpMap=fp.buildMap(merged,matcher);
+  const clusters=buildClusters(merged,matcher,pHashStub,fpMap,[]);
+  const scored=clusters.map(c=>({...c,richness:scoreRichness(c,'',matcher)})).sort((a,b)=>b.richness.total-a.richness.total);
+  // Enrich top 15 with detail APIs
+  await Promise.allSettled(scored.slice(0,15).map(async cluster=>{
+    const uniq=[...new Map(cluster.sources.map(s=>[s.source,s])).values()];
+    await Promise.allSettled(uniq.map(async({source,id})=>{
+      if(!['rijks','harvard','aic','cleveland'].includes(source))return;
+      const detail=await fetchDetail(source,id,credits);
+      if(detail)mergeDetail(cluster,source,detail);
+    }));
+    cluster.richness=scoreRichness(cluster,'',matcher);
+  }));
+  scored.sort((a,b)=>b.richness.total-a.richness.total);
+  return{scored,fresh};
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2463,6 +2557,8 @@ export default function ArtNexus() {
   const [adminOpen,  setAdminOpen]  = useState(false);
   const [searchMode, setSearchMode] = useState('standard');
   const [scoutCity,  setScoutCity]  = useState('paris');
+  const [browseLoading, setBrowseLoading] = useState(true);
+  const [isBrowseMode,  setIsBrowseMode]  = useState(true);
 
   const graphRef    = useRef(new ConnectionGraph());
   const creditsRef  = useRef(new CreditTracker());
@@ -2482,6 +2578,36 @@ export default function ArtNexus() {
     });
     const unsub = creditsRef.current.subscribe(()=>setCreditTick(t=>t+1));
     return unsub;
+  },[]);
+
+  // Auto-populate discover feed on mount: fresh API browse + pool
+  useEffect(()=>{
+    (async()=>{
+      setBrowseLoading(true);
+      try{
+        const [pool,freshArtworks]=await Promise.all([poolLoad(),fetchBrowseArtworks()]);
+        const matcher=new Matcher(), fp=new Fingerprinter(), pHashStub={hamming:()=>999};
+        const merged=dedup([...freshArtworks,...pool]);
+        const fpMap=fp.buildMap(merged,matcher);
+        const clusters=buildClusters(merged,matcher,pHashStub,fpMap,[]);
+        const scored=clusters.map(c=>({...c,richness:scoreRichness(c,'',matcher)})).sort((a,b)=>b.richness.total-a.richness.total);
+        // Enrich top 15 with detail APIs
+        await Promise.allSettled(scored.slice(0,15).map(async cluster=>{
+          const uniq=[...new Map(cluster.sources.map(s=>[s.source,s])).values()];
+          await Promise.allSettled(uniq.map(async({source,id})=>{
+            if(!['rijks','harvard','aic','cleveland'].includes(source))return;
+            const detail=await fetchDetail(source,id,creditsRef.current);
+            if(detail)mergeDetail(cluster,source,detail);
+          }));
+          cluster.richness=scoreRichness(cluster,'',matcher);
+        }));
+        scored.sort((a,b)=>b.richness.total-a.richness.total);
+        setResults(scored);
+        setIsBrowseMode(true);
+        poolSave(freshArtworks).catch(()=>{});
+      }catch(e){/* silent */}
+      setBrowseLoading(false);
+    })();
   },[]);
 
   const addLog = useCallback(entry=>{
@@ -2550,9 +2676,12 @@ export default function ArtNexus() {
       }
 
       setResults(scored);
+      setIsBrowseMode(false);
       setGStats(graphRef.current.getStats());
       learnerRef.current.record(query, scored.length, scored.filter(c=>c.sources.length>1).length, museumBreakdown);
       setSuggestions(learnerRef.current.getSuggestions(query));
+      // Grow the discover pool with every search (non-blocking)
+      poolSave(scored.flatMap(c=>c.artworks||[])).catch(()=>{});
     } catch(e) {
       addLog({stage:'system',msg:`Pipeline error: ${e.message}`,type:'error',ts:Date.now()});
     } finally { setLoading(false); }
@@ -2743,12 +2872,17 @@ export default function ArtNexus() {
 
       {/* ── RESULTS GRID ──────────────────────────────────────────── */}
       <div style={{padding:'12px 16px 80px',marginRight:deckOpen?296:0,marginLeft:adminOpen?310:0,transition:'margin 0.22s ease'}}>
-        {results.length===0 && !loading && (
-          <div style={{textAlign:'center',padding:'64px 0',color:'#1a1a28'}}>
-            <div style={{fontSize:34,marginBottom:12,opacity:0.2}}>⬡</div>
-            <div style={{fontSize:13,color:'#1e1e30'}}>Launch the 7-stage pipeline to begin</div>
-            <div className="mono" style={{fontSize:9,marginTop:6,color:'#161626'}}>Graph · Wikidata · 7 Museums · pHash · Fingerprint · Cluster · Score</div>
-            <div style={{fontSize:10,marginTop:4,color:'#141422'}}>Click any completed stage pill to inspect its live visualization</div>
+        {results.length===0 && browseLoading && (
+          <div style={{textAlign:'center',padding:'64px 0'}}>
+            <div style={{fontSize:11,fontFamily:'IBM Plex Mono',letterSpacing:'0.1em',color:'#2a2a40',marginBottom:8}}>DISCOVER · LOADING</div>
+            <div style={{fontSize:9,color:'#1a1a28',fontFamily:'IBM Plex Mono'}}>Fetching most documented paintings…</div>
+          </div>
+        )}
+        {isBrowseMode && results.length>0 && (
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10,paddingBottom:8,borderBottom:'1px solid #0d0d1a'}}>
+            <span style={{fontSize:9,fontFamily:'IBM Plex Mono',letterSpacing:'0.1em',color:'#2a2a40'}}>DISCOVER</span>
+            <span style={{fontSize:9,fontFamily:'IBM Plex Mono',color:'#1e1e30'}}>{results.length} paintings · sorted by richness</span>
+            {browseLoading&&<span style={{fontSize:9,fontFamily:'IBM Plex Mono',color:'#1a1a28'}}>· updating…</span>}
           </div>
         )}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(228px,1fr))',gap:10}}>
