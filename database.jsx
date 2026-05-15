@@ -48,7 +48,7 @@ input,button,select,textarea{font-family:'DM Sans',sans-serif}
 .conf-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:2px;font-size:10px;font-family:'IBM Plex Mono',monospace}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:#0c0c18;border:1px solid #222238;border-radius:6px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto}
+.modal{background:#0c0c18;border:1px solid #222238;border-radius:6px;max-width:700px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
 
 .toggle-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:3px;border:1px solid #222238;background:transparent;color:#6666a0;font-size:11px;cursor:pointer;transition:all 0.12s}
 .toggle-btn.on{background:#12121e;border-color:#33334e;color:#c8c8e8}
@@ -3012,7 +3012,7 @@ export default function ArtNexus() {
         <div className="modal-overlay" onClick={()=>setSelected(null)}>
           <div className="modal" style={{maxWidth:780}} onClick={e=>e.stopPropagation()}>
             {/* Header */}
-            <div style={{padding:'13px 16px',borderBottom:'1px solid #181828',display:'flex',justifyContent:'space-between',alignItems:'flex-start',background:'#08080e'}}>
+            <div style={{padding:'13px 16px',borderBottom:'1px solid #181828',display:'flex',justifyContent:'space-between',alignItems:'flex-start',background:'#08080e',flexShrink:0}}>
               <div style={{flex:1,marginRight:12}}>
                 <div style={{fontSize:14,fontWeight:500,color:'#d0d0f0',marginBottom:3,lineHeight:1.3}}>{selected.title}</div>
                 <div style={{fontSize:11,color:'#4a4a68',display:'flex',gap:8,flexWrap:'wrap'}}>
@@ -3032,9 +3032,9 @@ export default function ArtNexus() {
               </div>
             </div>
 
-            <div style={{display:'grid',gridTemplateColumns:'300px 1fr',maxHeight:'82vh',overflow:'hidden'}}>
+            <div style={{display:'grid',gridTemplateColumns:'300px 1fr',flex:1,minHeight:0,overflow:'hidden'}}>
               {/* Left: image + richness + badges */}
-              <div style={{borderRight:'1px solid #111120',overflowY:'auto'}} onWheel={e=>e.stopPropagation()}>
+              <div style={{borderRight:'1px solid #111120',overflowY:'auto',overscrollBehavior:'contain'}}>
                 {selected.imageUrl&&(
                   <img src={selected.imageUrl} alt={selected.title}
                     style={{width:'100%',maxHeight:300,objectFit:'contain',background:'#06060e',display:'block'}}/>
@@ -3088,21 +3088,25 @@ export default function ArtNexus() {
               </div>
 
               {/* Right: full metadata */}
-              <div style={{overflowY:'auto',padding:'10px 14px'}} onWheel={e=>e.stopPropagation()}>
+              <div style={{overflowY:'auto',overscrollBehavior:'contain',padding:'10px 14px'}}>
 
                 {/* ── IDENTITY ── */}
                 <SectionHead label="IDENTITY"/>
-                <MetaRow label="Object type"   value={selected.objectName||selected.classification}/>
+                {/* Show object type only if it adds info beyond classification */}
+                {selected.objectName&&selected.objectName!==selected.classification&&
+                  <MetaRow label="Object type"   value={selected.objectName}/>}
                 <MetaRow label="Classification" value={selected.classification}/>
                 <MetaRow label="Medium"        value={selected.medium||selected.artworks.find(a=>a.medium)?.medium}/>
                 <MetaRow label="Dimensions"    value={selected.dimensions||selected.artworks.find(a=>a.dimensions)?.dimensions} mono/>
                 <MetaRow label="Century"       value={selected.century}/>
                 <MetaRow label="Dynasty"       value={selected.dynasty}/>
-                <MetaRow label="Object URL"    value={selected.objectURL?
-                  <a href={selected.objectURL} target="_blank" rel="noreferrer"
-                    style={{color:'#3b82f6',textDecoration:'none',fontSize:9,fontFamily:'IBM Plex Mono'}}>
-                    {selected.objectURL.slice(0,50)}…
-                  </a>:null}/>
+                {typeof selected.objectURL==='string'&&selected.objectURL&&(
+                  <MetaRow label="Object URL" value={
+                    <a href={selected.objectURL} target="_blank" rel="noreferrer"
+                      style={{color:'#3b82f6',textDecoration:'none',fontSize:9,fontFamily:'IBM Plex Mono'}}>
+                      {selected.objectURL.slice(0,50)}…
+                    </a>}/>
+                )}
 
                 {/* ── CULTURAL ORIGIN ── */}
                 <SectionHead label="CULTURAL ORIGIN"/>
