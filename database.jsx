@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  'https://ixshtcvtchqpumwecmrd.supabase.co',
+  'sb_publishable_OAwMCMrD31IB6gwEqny2kA_JwHcDY7P'
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL STYLES
@@ -695,40 +701,145 @@ function expandQuery(query) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MODULE: DISCOVERY POOL  (IndexedDB — grows as user searches/browses)
+// MODULE: SUPABASE POOL  (shared across all users/sessions)
 // ═══════════════════════════════════════════════════════════════════════════════
-const _POOL_DB='a4a-discover-pool';
-function _poolOpen(){
-  return new Promise((res,rej)=>{
-    const req=indexedDB.open(_POOL_DB,1);
-    req.onupgradeneeded=e=>{
-      const db=e.target.result;
-      if(!db.objectStoreNames.contains('artworks'))
-        db.createObjectStore('artworks',{keyPath:'_k'});
-    };
-    req.onsuccess=e=>res(e.target.result);
-    req.onerror=()=>rej(req.error);
-  });
+function clusterToRow(a) {
+  return {
+    source_key:          `${a.source}:${a.id}`,
+    source:              a.source || null,
+    source_id:           String(a.id),
+    title:               a.title || null,
+    artist:              a.artist !== 'Unknown' ? a.artist : null,
+    artist_nationality:  a.artistNationality || null,
+    artist_begin_date:   a.artistBeginDate || null,
+    artist_end_date:     a.artistEndDate || null,
+    date_display:        a.date !== 'N/A' ? a.date : null,
+    medium:              a.medium || null,
+    dimensions:          a.dimensions || null,
+    culture:             a.culture || null,
+    period:              a.period || null,
+    movement:            a.movement || null,
+    genre:               a.genre || null,
+    place_of_origin:     a.placeOfOrigin || null,
+    credit_line:         a.creditLine || null,
+    accession_year:      a.accessionYear || null,
+    provenance_text:     typeof a.provenanceText==='string' ? a.provenanceText : null,
+    exhibition_history:  typeof a.exhibitionHistory==='string' ? a.exhibitionHistory : null,
+    publication_history: typeof a.publicationHistory==='string' ? a.publicationHistory : null,
+    fun_fact:            a.funFact || null,
+    wall_description:    a.wallDescription || null,
+    inscriptions:        a.inscriptions || null,
+    century:             a.century || null,
+    icon_class:          a.iconClass || null,
+    object_name:         a.objectName || null,
+    object_url:          typeof a.objectURL==='string' ? a.objectURL : null,
+    gallery_title:       a.galleryTitle || null,
+    gallery_number:      a.galleryNumber || null,
+    tags:                a.tags?.length ? a.tags : null,
+    subject_titles:      a.subjectTitles?.length ? a.subjectTitles : null,
+    style_titles:        a.styleTitles?.length ? a.styleTitles : null,
+    materials:           a.materials?.length ? a.materials : null,
+    techniques:          a.techniques?.length ? a.techniques : null,
+    production_places:   a.productionPlaces?.length ? a.productionPlaces : null,
+    constituents:        a.constituents?.length ? a.constituents : null,
+    colors:              a.colors?.length ? a.colors : null,
+    harvard_colors:      a.harvardColors?.length ? a.harvardColors : null,
+    aic_dominant_color:  a.aicDominantColor || null,
+    colorfulness:        a.colorfulness ?? null,
+    is_highlight:        !!a.isHighlight,
+    is_public_domain:    !!a.isPublicDomain,
+    is_on_view:          !!a.isOnView,
+    wikidata_id:         a.wikidataId || null,
+    wikidata_verified:   !!a.wikidataVerified,
+    confidence:          a.confidence || null,
+    richness_score:      a.richness?.total ?? null,
+    total_page_views:    a.totalPageViews || null,
+    harvard_rank:        a.rank || null,
+    exhibition_count:    a.exhibitionCount || null,
+    publication_count:   a.publicationCount || null,
+    fiscal_year_acq:     a.fiscalYearAcquisition || null,
+    image_url:           a.imageUrl || null,
+    enriched_at:         new Date().toISOString(),
+  };
 }
-async function poolSave(artworks){
-  try{
-    const db=await _poolOpen();
-    const tx=db.transaction('artworks','readwrite');
-    const st=tx.objectStore('artworks');
-    artworks.forEach(a=>{if(a.source&&a.id)st.put({...a,_k:`${a.source}:${a.id}`});});
-    await new Promise(r=>{tx.oncomplete=r;tx.onerror=r;});
-    db.close();
-  }catch(e){/* silent */}
+
+function rowToArtwork(r) {
+  return {
+    id:                  r.source_id,
+    source:              r.source,
+    title:               r.title || 'Untitled',
+    artist:              r.artist || 'Unknown',
+    artistNationality:   r.artist_nationality,
+    artistBeginDate:     r.artist_begin_date,
+    artistEndDate:       r.artist_end_date,
+    date:                r.date_display || 'N/A',
+    medium:              r.medium,
+    dimensions:          r.dimensions,
+    culture:             r.culture,
+    period:              r.period,
+    movement:            r.movement,
+    genre:               r.genre,
+    placeOfOrigin:       r.place_of_origin,
+    creditLine:          r.credit_line,
+    accessionYear:       r.accession_year,
+    provenanceText:      r.provenance_text,
+    exhibitionHistory:   r.exhibition_history,
+    publicationHistory:  r.publication_history,
+    funFact:             r.fun_fact,
+    wallDescription:     r.wall_description,
+    inscriptions:        r.inscriptions,
+    century:             r.century,
+    iconClass:           r.icon_class,
+    objectName:          r.object_name,
+    objectURL:           r.object_url,
+    galleryTitle:        r.gallery_title,
+    galleryNumber:       r.gallery_number,
+    tags:                r.tags || [],
+    subjectTitles:       r.subject_titles || [],
+    styleTitles:         r.style_titles || [],
+    materials:           r.materials || [],
+    techniques:          r.techniques || [],
+    productionPlaces:    r.production_places || [],
+    constituents:        r.constituents || [],
+    colors:              r.colors || [],
+    harvardColors:       r.harvard_colors || [],
+    aicDominantColor:    r.aic_dominant_color,
+    colorfulness:        r.colorfulness,
+    isHighlight:         r.is_highlight,
+    isPublicDomain:      r.is_public_domain,
+    isOnView:            r.is_on_view,
+    wikidataId:          r.wikidata_id,
+    wikidataVerified:    r.wikidata_verified,
+    confidence:          r.confidence,
+    totalPageViews:      r.total_page_views,
+    rank:                r.harvard_rank,
+    exhibitionCount:     r.exhibition_count,
+    publicationCount:    r.publication_count,
+    fiscalYearAcquisition: r.fiscal_year_acq,
+    imageUrl:            r.stored_image_url || r.image_url,
+    pHash:               null,
+  };
 }
-async function poolLoad(){
-  try{
-    const db=await _poolOpen();
-    const tx=db.transaction('artworks','readonly');
-    const st=tx.objectStore('artworks');
-    const all=await new Promise((res,rej)=>{const q=st.getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
-    db.close();
-    return all.map(({_k,...rest})=>rest);
-  }catch(e){return[];}
+
+async function poolSave(artworks) {
+  if (!artworks?.length) return;
+  try {
+    const rows = artworks
+      .filter(a => a.source && a.id)
+      .map(clusterToRow);
+    await supabase.from('paintings').upsert(rows, { onConflict: 'source_key', ignoreDuplicates: false });
+  } catch(e) { /* silent — pool saves are best-effort */ }
+}
+
+async function poolLoad() {
+  try {
+    const { data } = await supabase
+      .from('paintings')
+      .select('*')
+      .order('richness_score', { ascending: false })
+      .limit(500);
+    return (data || []).map(rowToArtwork);
+  } catch(e) { return []; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2735,7 +2846,7 @@ export default function ArtNexus() {
       learnerRef.current.record(query, scored.length, scored.filter(c=>c.sources.length>1).length, museumBreakdown);
       setSuggestions(learnerRef.current.getSuggestions(query));
       // Grow the discover pool with every search (non-blocking)
-      poolSave(scored.flatMap(c=>c.artworks||[])).catch(()=>{});
+      poolSave(scored.map(c=>({...c,...(c.artworks?.[0]||{}),id:c.sources?.[0]?.id||c.id,source:c.sources?.[0]?.source||c.source}))).catch(()=>{});
     } catch(e) {
       addLog({stage:'system',msg:`Pipeline error: ${e.message}`,type:'error',ts:Date.now()});
     } finally { setLoading(false); }
