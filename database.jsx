@@ -144,7 +144,7 @@ const CITY_AFFINITIES = {
     dynasty:    {},
   },
   tokyo:     { name:'Tokyo',     flag:'🇯🇵', region:'E. Asia',
-    culture:    {japanese:2.0,'east asian':1.6,asian:1.3},
+    culture:    {japanese:2.0,japan:1.9,'east asian':1.6,asian:1.3},
     movement:   {'ukiyo-e':2.0,impressionism:1.6,'post-impressionism':1.5,japonisme:2.0,'nihonga':1.9},
     nationality:{japanese:2.0},
     origin:     {japan:2.0,tokyo:1.9,kyoto:1.9,edo:2.0,osaka:1.7},
@@ -186,7 +186,7 @@ const CITY_AFFINITIES = {
     dynasty:    {'eighteenth dynasty':2.0,'new kingdom':1.9,'old kingdom':1.8,'middle kingdom':1.8,ptolemaic:1.9,fatimid:1.8,mamluk:1.7},
   },
   beijing:   { name:'Beijing',   flag:'🇨🇳', region:'E. Asia',
-    culture:    {chinese:2.0,'east asian':1.7,tibetan:1.5},
+    culture:    {chinese:2.0,china:1.9,'east asian':1.7,tibetan:1.5},
     movement:   {'chinese painting':2.0,'ink painting':1.9,'buddhist art':1.6,'literati':1.8},
     nationality:{chinese:2.0},
     origin:     {china:2.0,beijing:2.0,'imperial china':1.9,tibet:1.6},
@@ -242,7 +242,7 @@ const CITY_AFFINITIES = {
     dynasty:    {},
   },
   seoul:     { name:'Seoul',     flag:'🇰🇷', region:'E. Asia',
-    culture:    {korean:2.0,'east asian':1.6},
+    culture:    {korean:2.0,korea:1.9,'east asian':1.6},
     movement:   {'korean painting':2.0,dansaekhwa:1.9,'minjung art':1.7},
     nationality:{korean:2.0},
     origin:     {korea:2.0,seoul:2.0},
@@ -769,7 +769,7 @@ function rowToArtwork(r) {
     source:              r.source,
     title:               r.title || 'Untitled',
     artist:              r.artist || 'Unknown',
-    artistNationality:   r.artist_nationality,
+    artistNationality:   (r.artist_nationality && r.artist_nationality.length <= 50 && !/produced by|inc\.|designed by/i.test(r.artist_nationality)) ? r.artist_nationality : null,
     artistBeginDate:     r.artist_begin_date,
     artistEndDate:       r.artist_end_date,
     date:                r.date_display || 'N/A',
@@ -821,14 +821,48 @@ function rowToArtwork(r) {
   };
 }
 
-async function poolSave(artworks) {
-  if (!artworks?.length) return;
+// LIMITED_CREDIT_SOURCES: APIs with daily caps — save their images to avoid re-fetching
+const LIMITED_CREDIT_SOURCES = new Set(['harvard','smithsonian','europeana']);
+
+async function storePublicImage(imageUrl, sourceKey) {
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
   try {
-    const rows = artworks
-      .filter(a => a.source && a.id)
-      .map(clusterToRow);
-    await supabase.from('paintings').upsert(rows, { onConflict: 'source_key', ignoreDuplicates: false });
-  } catch(e) { /* silent — pool saves are best-effort */ }
+    const res = await fetch(imageUrl);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const ext = blob.type.includes('png') ? 'png' : 'jpg';
+    const path = `${sourceKey.replace(':','/')}.${ext}`;
+    const { error } = await supabase.storage.from('painting-images').upload(path, blob, { upsert: true, contentType: blob.type });
+    if (error) return null;
+    const { data } = supabase.storage.from('painting-images').getPublicUrl(path);
+    return data?.publicUrl || null;
+  } catch(e) { return null; }
+}
+
+// Accepts both raw mkArt objects and enriched cluster objects.
+// Saves one row per source entry so the clustering step can re-merge on load.
+async function poolSave(items) {
+  if (!items?.length) return;
+  try {
+    const rows = [];
+    for (const item of items) {
+      // Cluster object (has sources[]) — save one row per source
+      const sources = item.sources?.length ? item.sources : [{ source: item.source, id: item.id }];
+      for (const s of sources) {
+        if (!s.source || !s.id) continue;
+        const sourceKey = `${s.source}:${s.id}`;
+        let storedImageUrl = null;
+        // Save image only for public domain paintings from limited-credit APIs
+        if (item.isPublicDomain && LIMITED_CREDIT_SOURCES.has(s.source) && item.imageUrl) {
+          storedImageUrl = await storePublicImage(item.imageUrl, sourceKey);
+        }
+        rows.push({ ...clusterToRow({ ...item, source: s.source, id: s.id }), stored_image_url: storedImageUrl });
+      }
+    }
+    if (!rows.length) return;
+    const { error } = await supabase.from('paintings').upsert(rows, { onConflict: 'source_key', ignoreDuplicates: false });
+    if (error) console.warn('[pool] save error:', error.message);
+  } catch(e) { console.warn('[pool] save failed:', e.message); }
 }
 
 async function poolLoad() {
@@ -847,19 +881,26 @@ async function poolLoad() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // Strips "(Nationality, YYYY–YYYY)" from Met/AIC display strings and extracts metadata.
 // Returns { name, nationality, beginDate, endDate } — all nullable except name.
+const _INLINE_PAREN = /^(.*?)\s*\(([A-Z][a-z][^,)0-9]{0,25}?)(?:,\s*(?:born\s+)?(\d{4})(?:\s*[–\-]\s*(\d{4}))?)?\)\s*$/;
+const _NAT_META     = /^([A-Za-z][^,\d]*?)(?:,\s*(?:born\s+)?(\d{4})(?:\s*[–\-]\s*(\d{4}))?)?$/;
 function parseArtistDisplay(str) {
   if (!str) return { name: null, nationality: null, beginDate: null, endDate: null };
-  // AIC: "Name\nNationality, YYYY–YYYY"
+  // AIC: "Name\nNationality, YYYY–YYYY" (may have extra lines for production credits)
   const nl = str.indexOf('\n');
   if (nl > 0) {
     const name = str.slice(0, nl).trim();
-    const meta = str.slice(nl + 1).trim();
-    const m = meta.match(/^([A-Za-z][^,\d]*?)(?:,\s*(?:born\s+)?(\d{4})(?:\s*[–\-]\s*(\d{4}))?)?$/);
-    return { name, nationality: (m ? m[1].trim() : meta) || null, beginDate: m?.[2] || null, endDate: m?.[3] || null };
+    // Use only the first meta line; further lines are production credits, not nationality
+    const meta = str.slice(nl + 1).split('\n')[0].trim();
+    const m = meta.match(_NAT_META);
+    if (m) return { name, nationality: m[1].trim() || null, beginDate: m[2] || null, endDate: m[3] || null };
+    // meta wasn't a clean nationality — try inline parenthetical in name
+    const mInline = name.match(_INLINE_PAREN);
+    if (mInline?.[2]) return { name: mInline[1].trim(), nationality: mInline[2].trim(), beginDate: mInline[3] || null, endDate: mInline[4] || null };
+    return { name, nationality: null, beginDate: null, endDate: null };
   }
-  // Met: "Name (Nationality, YYYY–YYYY)" or "Name (Nationality)"
-  const m = str.match(/^(.*?)\s*\(([A-Z][a-z][^,)0-9]{0,25}?)(?:,\s*(?:born\s+)?(\d{4})(?:\s*[–\-]\s*(\d{4}))?)?\)\s*$/);
-  if (m && m[2]) return { name: m[1].trim(), nationality: m[2].trim(), beginDate: m[3] || null, endDate: m[4] || null };
+  // Met / inline: "Name (Nationality, YYYY–YYYY)" or "Name (Nationality)"
+  const m = str.match(_INLINE_PAREN);
+  if (m?.[2]) return { name: m[1].trim(), nationality: m[2].trim(), beginDate: m[3] || null, endDate: m[4] || null };
   return { name: str.trim(), nationality: null, beginDate: null, endDate: null };
 }
 
@@ -1511,6 +1552,7 @@ function buildClusters(artworks, matcher, pHashEngine, fpMap, wikidataItems){
       culture:a1.culture||null,
       period:a1.period||null,
       dynasty:a1.dynasty||null,
+      placeOfOrigin:a1.placeOfOrigin||null,
       artistNationality:a1.artistNationality||null,
       artistBeginDate:a1.artistBeginDate||null,
       artistEndDate:a1.artistEndDate||null,
@@ -1532,7 +1574,7 @@ function buildClusters(artworks, matcher, pHashEngine, fpMap, wikidataItems){
       historicalPersons:[],styleTitles:[],classificationTitles:[],depicts:[],
       rank:null,totalPageViews:null,exhibitionCount:0,publicationCount:0,
       exhibitionHistory:null,publicationHistory:null,
-      placeOfOrigin:null,colorfulness:null,inscriptions:null,
+      colorfulness:null,inscriptions:null,
       provenanceText:null,funFact:null,wallDescription:null,
       fiscalYearAcquisition:null,accessionYear:null,century:null,iconClass:null,
       movement:null,genre:null,aicDominantColor:null,
@@ -2846,7 +2888,7 @@ export default function ArtNexus() {
       learnerRef.current.record(query, scored.length, scored.filter(c=>c.sources.length>1).length, museumBreakdown);
       setSuggestions(learnerRef.current.getSuggestions(query));
       // Grow the discover pool with every search (non-blocking)
-      poolSave(scored.map(c=>({...c,...(c.artworks?.[0]||{}),id:c.sources?.[0]?.id||c.id,source:c.sources?.[0]?.source||c.source}))).catch(()=>{});
+      poolSave(scored).catch(()=>{});
     } catch(e) {
       addLog({stage:'system',msg:`Pipeline error: ${e.message}`,type:'error',ts:Date.now()});
     } finally { setLoading(false); }
@@ -3064,6 +3106,7 @@ export default function ArtNexus() {
                       <span className="mono" style={{fontSize:8,color:'#2a2a40'}}>#{idx+1}</span>
                     </div>
                     <div style={{position:'absolute',top:5,right:5,display:'flex',gap:2}}>
+                      {item.isHighlight&&(()=>{const hs=[...new Set(item.artworks.filter(a=>a.isHighlight).map(a=>MUSEUM_META[a.source]?.label||a.source))];return<span title={`${hs.join(' · ')} Highlight`} style={{fontSize:9,background:'rgba(251,191,36,0.18)',color:'#fbbf24',padding:'1px 4px',borderRadius:2,lineHeight:1}}>★</span>;})()}
                       {item.wikidataVerified&&<span title="Wikidata" style={{fontSize:8,background:'rgba(34,197,94,0.18)',color:'#22c55e',padding:'1px 4px',borderRadius:2}}>⬡</span>}
                       {item.pHashMatched&&<span title="pHash match" style={{fontSize:8,background:'rgba(139,92,246,0.18)',color:'#8b5cf6',padding:'1px 4px',borderRadius:2}}>⊞</span>}
                       {item.graphHit&&<span title="Graph cache hit" style={{fontSize:8,background:'rgba(251,191,36,0.18)',color:'#fbbf24',padding:'1px 4px',borderRadius:2}}>◈</span>}
