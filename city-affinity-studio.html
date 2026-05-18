@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtNexus · City Affinity Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f12; --surface:#141720; --s2:#1c2030; --s3:#232840;
+  --border:#2a2e3d; --border2:#3a3f55; --text:#e2e6f0; --muted:#6b7280; --dim:#9ca3af;
+  --accent:#6366f1; --accent2:#818cf8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:13px;line-height:1.5;min-height:100vh;padding:20px;max-width:1600px;margin:0 auto}
+
+/* ── HEADER ── */
+header{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{font-size:15px;font-weight:600;color:#818cf8}
+.logo span{color:var(--muted)}
+.header-sub{font-size:11px;color:var(--muted)}
+.header-stat{margin-left:auto;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:11px;color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600}
+
+/* ── BARS ── */
+.preset-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.preset-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;white-space:nowrap}
+.preset-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--s2);color:var(--dim);font-family:'IBM Plex Mono',monospace;transition:all .12s;letter-spacing:.2px}
+.preset-btn:hover{color:var(--text);border-color:var(--accent2)}
+.preset-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ── VIEW TOGGLE ── */
+.view-toggle-wrap{margin-left:auto;display:flex;align-items:center;gap:8px}
+.view-toggle-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.view-toggle{display:flex;border:1px solid var(--border2);border-radius:7px;overflow:hidden;background:var(--s3);cursor:pointer}
+.view-seg{padding:5px 14px;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:var(--muted);transition:all .12s;border:none;background:transparent;cursor:pointer}
+.view-seg.active{background:var(--s2);color:var(--text)}
+.view-seg.active.player-seg{background:#6366f1;color:#fff}
+
+/* ── SELECTOR PANEL ── */
+.selector-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+.selector-panel-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:12px}
+.regions{display:flex;flex-direction:column;gap:10px}
+.region-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.region-name{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;min-width:110px;font-family:'IBM Plex Mono',monospace}
+.region-cities{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
+/* Solo toggle */
+.solo-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--s3);color:var(--muted);transition:all .12s;user-select:none}
+.solo-btn .flag{font-size:14px;line-height:1}
+.solo-btn.on{background:var(--s2);border-color:var(--border2);color:var(--text)}
+.solo-btn.on .dot{background:var(--accent2)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .12s}
+.db-pip{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;padding:1px 4px;border-radius:3px;background:#6366f122;color:#818cf8;margin-left:2px}
+
+/* Conflict pair */
+.conflict-group{display:flex;align-items:center;gap:0;border:1px solid var(--border2);border-radius:7px;overflow:hidden;background:var(--s3)}
+.conflict-seg{padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .12s;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap}
+.conflict-seg .flag{font-size:13px}
+.conflict-seg:hover{color:var(--dim)}
+.conflict-seg.active{background:var(--s2);color:var(--text)}
+.conflict-seg.active.both{background:var(--accent);color:#fff}
+.conflict-divider{font-size:9px;color:var(--border2);padding:0 2px;pointer-events:none;font-family:'IBM Plex Mono',monospace;font-weight:600}
+.conflict-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;padding:0 6px;border-right:1px solid var(--border);font-family:'IBM Plex Mono',monospace;min-width:60px}
+
+/* ── STATS ── */
+.stats-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:120px}
+.stat-num{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:var(--accent2)}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+
+/* ── CITY GRID ── */
+.city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+
+/* ── CITY CARD ── */
+.city-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:opacity .2s,filter .2s,border-color .2s}
+.city-card.off{opacity:.25;filter:grayscale(.9);pointer-events:none}
+.city-card.db-city{border-color:#6366f133}
+
+.city-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.city-flag{font-size:22px;line-height:1}
+.city-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.city-db-tag{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;padding:1px 5px;border-radius:3px;background:#6366f122;color:#818cf8;border:1px solid #6366f133}
+.city-sub{font-size:11px;color:var(--muted)}
+
+/* ── CARD BODY: two-column layout ── */
+.city-body{display:flex;min-height:118px}
+
+/* ── AFFINITIES — left column ── */
+.affinity-list{flex:0 0 52%;padding:10px 12px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--border)}
+.affinity-pill{display:flex;justify-content:space-between;align-items:center;padding:4px 9px;border-radius:4px;gap:6px}
+.affinity-pill-tag{font-size:11px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.affinity-pill-mult{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;flex-shrink:0;transition:opacity .2s,width .2s}
+
+/* ── STRATEGY — right column, curator always visible ── */
+.city-strategy{flex:1;padding:10px 14px;font-size:11px;color:var(--muted);line-height:1.65;overflow:auto}
+.city-strategy strong{color:var(--dim)}
+.strategy-curator{}
+.strategy-lore{display:none;font-size:11px;color:var(--dim);line-height:1.7}
+
+/* ══════════════════════════════════════════
+   PLAYER MODE
+══════════════════════════════════════════ */
+.player-mode .affinity-pill-mult{opacity:0;pointer-events:none;width:0;min-width:0;overflow:hidden}
+.player-mode .city-card:not(.off):hover{
+  border-color:var(--border2);
+  box-shadow:0 0 0 1px var(--accent)22;
+}
+.player-mode .strategy-curator{display:none}
+.player-mode .strategy-lore{display:block}
+.curator-mode .strategy-lore{display:none}
+.curator-mode .strategy-curator{display:block}
+
+/* Hint bar visible in player mode */
+.player-hint{display:none;text-align:center;font-size:10px;color:var(--muted);padding:6px;font-family:'IBM Plex Mono',monospace;letter-spacing:.3px;margin-bottom:4px}
+.player-mode .player-hint{display:block}
+</style>
+</head>
+<body class="curator-mode">
+
+<header>
+  <div class="logo">ArtNexus <span>·</span> City Affinity Studio</div>
+  <div class="header-sub">Choose cities per region — conflicts resolved inline</div>
+  <div class="header-stat" id="header-stat">— active</div>
+</header>
+
+<!-- PRESETS + VIEW TOGGLE -->
+<div class="preset-bar">
+  <span class="preset-label">Profiles</span>
+  <button class="preset-btn active" onclick="applyPreset('core',this)">Core 13</button>
+  <button class="preset-btn" onclick="applyPreset('western',this)">Western Europe</button>
+  <button class="preset-btn" onclick="applyPreset('asia',this)">East Asia</button>
+  <button class="preset-btn" onclick="applyPreset('americas',this)">Americas</button>
+  <button class="preset-btn" onclick="applyPreset('mena',this)">MENA</button>
+  <button class="preset-btn" onclick="applyPreset('databases',this)">DB Cities</button>
+  <button class="preset-btn" onclick="applyPreset('all',this)">All</button>
+  <button class="preset-btn" onclick="applyPreset('none',this)">Clear</button>
+
+  <div class="view-toggle-wrap">
+    <span class="view-toggle-label">View</span>
+    <div class="view-toggle">
+      <button class="view-seg active" id="seg-curator" onclick="setView('curator')">Curator</button>
+      <button class="view-seg player-seg" id="seg-player" onclick="setView('player')">Player</button>
+    </div>
+  </div>
+</div>
+
+<!-- SELECTOR -->
+<div class="selector-panel">
+  <div class="selector-panel-title">City Selection — click any city or choose between conflict pairs</div>
+  <div class="regions" id="region-rows"></div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card"><div class="stat-num" id="s-active">—</div><div class="stat-label">Active cities</div></div>
+  <div class="stat-card"><div class="stat-num" id="s-tags">—</div><div class="stat-label">Unique affinity tags</div></div>
+  <div class="stat-card"><div class="stat-num" id="s-maxmult">—</div><div class="stat-label">Max stack (active)</div></div>
+  <div class="stat-card"><div class="stat-num" id="s-coverage">—</div><div class="stat-label">Regions covered</div></div>
+</div>
+
+<!-- HINT -->
+<div class="player-hint">hover any city to learn its character</div>
+
+<!-- CITY CARDS -->
+<div class="city-grid" id="city-grid"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  CITY DATA
+//  strategy = curator text (institutional, precise)
+//  lore     = player text (evocative, no numbers, museums as places)
+// ══════════════════════════════════════════════════════════════════
+const CITIES = [
+
+  // ─ FRANCE ───────────────────────────────────────────────────────
+  {id:'paris', name:'Paris', flag:'🇫🇷', sub:"Musée d'Orsay · Louvre · Centre Pompidou",
+   region:'France', status:'core',
+   affinities:[
+     {tag:'French',             mult:2.0, color:'#3b82f6'},
+     {tag:'Impressionism',      mult:2.0, color:'#8b5cf6'},
+     {tag:'Post-Impressionism', mult:1.8, color:'#a855f7'},
+     {tag:'Art Nouveau',        mult:1.7, color:'#c084fc'},
+     {tag:'Rococo',             mult:1.6, color:'#ddd6fe'},
+   ],
+   strategy:"French and Impressionist tags stack at maximum strength here. Monet, Renoir, Pissarro, Cézanne — works carrying French identity or the Impressionist gesture score at the top of the system. The Musée d'Orsay holds the world's deepest Impressionist collection; the Louvre anchors five centuries of French painting before it.",
+   lore:"The city set the terms for two centuries of Western painting, and then the Impressionists rewrote them in a single decade — and Paris recognized it first. The Louvre holds what came before; the Musée d'Orsay holds the moment it changed."},
+
+  // ─ ITALY ────────────────────────────────────────────────────────
+  {id:'rome', name:'Rome', flag:'🇮🇹', sub:'Vatican Museums · Borghese · Capitoline',
+   region:'Italy', status:'core',
+   affinities:[
+     {tag:'Italian',            mult:2.0, color:'#f59e0b'},
+     {tag:'Renaissance',        mult:2.0, color:'#fbbf24'},
+     {tag:'Baroque',            mult:1.9, color:'#fcd34d'},
+     {tag:'Mannerism',          mult:1.7, color:'#fde68a'},
+     {tag:'Neoclassical',       mult:1.6, color:'#fef3c7'},
+   ],
+   strategy:"Italian and Renaissance tags reach maximum strength here simultaneously. Raphael, Michelangelo, Caravaggio — works carrying Italian identity across any period score above anywhere else. The Vatican Museums and Borghese Gallery define the institutional canon; the Capitoline holds the oldest public collection in the world.",
+   lore:"Every major Western painter from the 1400s onward came here on commission or came to study the ruins. The Vatican spent a century hiring the best painters alive to cover its ceilings and walls. Work carrying this tradition arrives in the city that wrote the original brief."},
+
+  // ─ IBERIA ────────────────────────────────────────────────────────
+  {id:'madrid', name:'Madrid', flag:'🇪🇸', sub:'Prado · Reina Sofía · Thyssen-Bornemisza',
+   region:'Iberia', status:'core',
+   affinities:[
+     {tag:'Spanish',            mult:2.0, color:'#dc2626'},
+     {tag:'Baroque',            mult:1.9, color:'#ef4444'},
+     {tag:'Surrealism',         mult:1.8, color:'#f87171'},
+     {tag:'Velázquez-era',      mult:1.7, color:'#fca5a5'},
+     {tag:'Goya',               mult:1.8, color:'#fed7aa'},
+   ],
+   strategy:"Spanish identity tags reach maximum strength here. Velázquez painted the king; Goya painted the nightmares; Dalí painted the space between. Works carrying Spanish origin, Baroque character, or Surrealist movement score at full strength across all three of Madrid's anchor institutions — the Prado, Reina Sofía, and Thyssen.",
+   lore:"Velázquez painted the royal family with such unflattering precision the king made him court painter anyway. Goya painted his nightmares on the walls of his own house, for no audience. Both painters are still in the Prado, a fifteen-minute walk apart."},
+
+  // ─ BENELUX ───────────────────────────────────────────────────────
+  {id:'amsterdam', name:'Amsterdam', flag:'🇳🇱', sub:'Rijksmuseum · Van Gogh Museum · Stedelijk',
+   region:'Benelux', status:'core', group:'benelux', dbCity:true, dbLabel:'RIJKS',
+   affinities:[
+     {tag:'Dutch',              mult:2.0, color:'#f97316'},
+     {tag:'Golden Age',         mult:2.0, color:'#fb923c'},
+     {tag:'Flemish',            mult:1.8, color:'#fdba74'},
+     {tag:'Baroque',            mult:1.6, color:'#fde68a'},
+   ],
+   strategy:"Dutch and Golden Age tags reach maximum strength simultaneously — the highest possible double-stack for any single national tradition in the system. The Rijksmuseum, one of our eight primary collection sources, holds the world's deepest Dutch Golden Age holdings. Rembrandt, Vermeer, Hals, de Hooch — works carrying Dutch identity score here above anywhere else on earth.",
+   lore:"The Dutch Republic had no king and no church with money to spend, so merchant families commissioned portraits of themselves instead — the first civilization to make ordinary life the subject of serious painting. The Rijksmuseum, one of our primary collection sources, holds all of it."},
+
+  {id:'brussels', name:'Brussels', flag:'🇧🇪', sub:'Royal Museums of Fine Arts · Magritte Museum · BOZAR',
+   region:'Benelux', status:'expanded', group:'benelux',
+   affinities:[
+     {tag:'Belgian',            mult:1.9, color:'#f59e0b'},
+     {tag:'Flemish',            mult:1.8, color:'#fbbf24'},
+     {tag:'Surrealism',         mult:2.0, color:'#fcd34d'},
+     {tag:'Symbolism',          mult:1.8, color:'#fde68a'},
+   ],
+   strategy:"Belgian Surrealism reaches maximum strength exclusively here — Magritte's practice belongs to this city in a way no other movement belongs to any city. The Flemish overlap with Amsterdam is real but secondary; Brussels' primary identity is Symbolism and Surrealism. The Magritte Museum holds the largest collection of his work anywhere.",
+   lore:"Magritte commuted to his studio by tram and painted the surreal as if it were perfectly ordinary — which is a different thing than the Spanish heat of Dalí, or the Freudian drama of Ernst. The polite uncanny, the wrong thing in an entirely reasonable room, is specifically Belgian."},
+
+  // ─ GERMAN-SPEAKING ───────────────────────────────────────────────
+  {id:'berlin', name:'Berlin', flag:'🇩🇪', sub:'Gemäldegalerie · Neue Nationalgalerie · Pergamon',
+   region:'German-speaking', status:'core',
+   affinities:[
+     {tag:'German',             mult:1.9, color:'#6b7280'},
+     {tag:'Expressionism',      mult:2.0, color:'#9ca3af'},
+     {tag:'Bauhaus',            mult:1.9, color:'#d1d5db'},
+     {tag:'New Objectivity',    mult:1.8, color:'#e5e7eb'},
+     {tag:'Romanticism',        mult:1.6, color:'#f3f4f6'},
+   ],
+   strategy:"German Expressionism reaches maximum strength here, stacking with German national identity for works that carry both. Kirchner, Klee, Grosz, Beckmann — the full Expressionist and Weimar canon peaks in Berlin. Bauhaus tags are also near-exclusive to this city. Harvard's Busch-Reisinger Museum, our primary Expressionist source, directly feeds this affinity.",
+   lore:"Kirchner painted the Berlin streets in 1913 with an electric urgency — the city already moving faster than anyone could quite capture. The Bauhaus was founded in 1919 on the conviction that good design could rebuild civilization, and in the thirteen years it ran, it changed how the world thinks about making things."},
+
+  {id:'vienna', name:'Vienna', flag:'🇦🇹', sub:'Kunsthistorisches Museum · Belvedere · Leopold Museum',
+   region:'German-speaking', status:'expanded',
+   affinities:[
+     {tag:'Austrian',           mult:1.9, color:'#f97316'},
+     {tag:'Art Nouveau',        mult:2.0, color:'#fb923c'},
+     {tag:'Vienna Secession',   mult:2.0, color:'#fdba74'},
+     {tag:'Symbolism',          mult:1.8, color:'#fde68a'},
+     {tag:'Habsburg',           mult:1.7, color:'#fed7aa'},
+   ],
+   strategy:"Vienna Secession tags reach maximum strength exclusively here — this movement has no other home in the system. Klimt and Schiele are both singular to Vienna; the Belvedere holds the world's largest Klimt collection. The Kunsthistorisches holds four centuries of Habsburg accumulation. Works carrying Austrian identity, Art Nouveau character, or Symbolist movement score here at full strength.",
+   lore:"The Secession's founding motto was 'to every age its art, to every art its freedom' — which the Habsburg court funded against its own instincts, because they recognized something irreplaceable was happening. Klimt and Schiele worked within a decade of each other and produced almost nothing in common."},
+
+  // ─ BRITISH ISLES ──────────────────────────────────────────────────
+  {id:'london', name:'London', flag:'🇬🇧', sub:'National Gallery · Tate Modern · Victoria & Albert Museum',
+   region:'British Isles', status:'core',
+   affinities:[
+     {tag:'British',            mult:1.9, color:'#10b981'},
+     {tag:'Pre-Raphaelite',     mult:1.9, color:'#34d399'},
+     {tag:'Romanticism',        mult:1.7, color:'#6ee7b7'},
+     {tag:'Turner-era',         mult:1.7, color:'#a7f3d0'},
+     {tag:'Decorative Arts',    mult:1.6, color:'#d1fae5'},
+   ],
+   strategy:"British identity and Pre-Raphaelite tags reach near-maximum strength simultaneously. Turner, Constable, Millais, Rossetti — the full British canon peaks here. The Victoria and Albert Museum anchors Decorative Arts with a collection unmatched globally. The second-largest art market in the world after New York; revenue weight approaches maximum.",
+   lore:"Turner spent his last years watching the Thames at different hours of light, then painted from memory. The Pre-Raphaelites wanted to go back before Raphael corrupted everything. Both movements were obsessively specific about what, exactly, they were refusing."},
+
+  // ─ NORDIC ─────────────────────────────────────────────────────────
+  {id:'stockholm', name:'Stockholm', flag:'🇸🇪', sub:'Nationalmuseum · Moderna Museet · Fotografiska',
+   region:'Nordic', status:'expanded',
+   affinities:[
+     {tag:'Scandinavian',       mult:2.0, color:'#3b82f6'},
+     {tag:'Nordic Realism',     mult:1.9, color:'#60a5fa'},
+     {tag:'Swedish',            mult:1.9, color:'#93c5fd'},
+     {tag:'Viking',             mult:1.8, color:'#bfdbfe'},
+     {tag:'Design',             mult:1.7, color:'#dbeafe'},
+   ],
+   strategy:"Scandinavian tags reach maximum strength here — the only city in the system carrying Nordic identity. The Nationalmuseum holds five centuries of Swedish and Nordic painting, craft, and design. Anders Zorn, Carl Larsson, Carl Fredrik Hill — the full Nordic tradition peaks here. Europeana's extensive Nordic institutional contributions feed this affinity directly.",
+   lore:"The northern light arrives at a low angle and stays there all day — oblique, precise, unhurried. Zorn painted skin and water in it with complete accuracy; Larsson made it domestic and warm. The Nationalmuseum holds five centuries of tradition that grew from that particular quality of seeing."},
+
+  // ─ CLASSICAL ───────────────────────────────────────────────────────
+  {id:'athens', name:'Athens', flag:'🇬🇷', sub:'National Archaeological Museum · Acropolis Museum',
+   region:'Classical Mediterranean', status:'core',
+   affinities:[
+     {tag:'Ancient Greek',      mult:2.0, color:'#3b82f6'},
+     {tag:'Classical',          mult:2.0, color:'#60a5fa'},
+     {tag:'Hellenistic',        mult:1.8, color:'#93c5fd'},
+     {tag:'Bronze Age',         mult:1.6, color:'#bfdbfe'},
+   ],
+   strategy:"Ancient Greek and Classical tags reach maximum strength simultaneously — the highest possible double-stack for this tradition anywhere in the system. The Acropolis Museum holds the Parthenon sculptures in direct sight of the building they came from. Works from the Metropolitan, Harvard, and Cleveland carrying Greek or Classical identity score here at full strength with no competing city.",
+   lore:"The Acropolis Museum was positioned so its top floor faces the Parthenon directly through glass — frieze inside, building outside, simultaneously. The Greeks decided what a human body was supposed to look like, and every Western figurative tradition since has been working within or against that decision."},
+
+  // ─ EASTERN EUROPE ────────────────────────────────────────────────
+  {id:'moscow', name:'Moscow', flag:'🇷🇺', sub:'State Tretyakov Gallery · Pushkin State Museum',
+   region:'Eastern Europe', status:'core',
+   affinities:[
+     {tag:'Russian',            mult:2.0, color:'#7c3aed'},
+     {tag:'Avant-garde',        mult:2.0, color:'#8b5cf6'},
+     {tag:'Constructivism',     mult:1.9, color:'#a78bfa'},
+     {tag:'Realism',            mult:1.7, color:'#c4b5fd'},
+     {tag:'Socialist Realism',  mult:1.5, color:'#ddd6fe'},
+   ],
+   strategy:"Russian and Avant-garde tags reach maximum strength simultaneously — the only city in the system carrying Russian identity. Kandinsky, Malevich, Popova, Rodchenko — works that tried to reinvent visual language peak nowhere else. The Tretyakov holds the Russian tradition from icon painting through the full Soviet period; the Pushkin holds the Western collection the Soviet state accumulated.",
+   lore:"Malevich painted a black square in 1915 and declared it the end of painting and the start of everything after. Kandinsky was writing the theory of pure color in the same city at the same time. They never agreed on what they were doing, and that disagreement produced most of what came next."},
+
+  // ─ MENA ─────────────────────────────────────────────────────────
+  {id:'cairo', name:'Cairo', flag:'🇪🇬', sub:'Grand Egyptian Museum · Museum of Islamic Art',
+   region:'MENA', status:'core', group:'mena',
+   affinities:[
+     {tag:'Ancient Egyptian',   mult:2.0, color:'#d97706'},
+     {tag:'Islamic',            mult:1.9, color:'#b45309'},
+     {tag:'Coptic',             mult:1.7, color:'#92400e'},
+     {tag:'Byzantine',          mult:1.5, color:'#78350f'},
+   ],
+   strategy:"Ancient Egyptian tags reach maximum strength exclusively here — the Grand Egyptian Museum, opened 2023, holds the largest ancient Egyptian collection on earth in direct proximity to the pyramids. Works from the Metropolitan's Egyptian department score here above anywhere. The Museum of Islamic Art holds the world's most comprehensive Islamic art collection.",
+   lore:"Every civilization that came after borrowed from here — the column, the portrait convention, the idea of the funeral mask — often without knowing where it originated. The Grand Egyptian Museum opened in 2023 within sight of the pyramids, reuniting the collection with its origin for the first time."},
+
+  {id:'istanbul', name:'Istanbul', flag:'🇹🇷', sub:'Topkapı Palace Museum · Istanbul Modern · Pera Museum',
+   region:'MENA', status:'expanded', group:'mena',
+   affinities:[
+     {tag:'Ottoman',            mult:2.0, color:'#d97706'},
+     {tag:'Byzantine',          mult:2.0, color:'#b45309'},
+     {tag:'Islamic',            mult:1.8, color:'#92400e'},
+     {tag:'Greek',              mult:1.5, color:'#78350f'},
+   ],
+   strategy:"Ottoman and Byzantine tags reach maximum strength simultaneously — the only city in the system holding both. Topkapı Palace holds six centuries of Ottoman accumulation: calligraphy, miniature painting, tilework, weaponry, the complete visual culture of an empire. Istanbul Modern represents the city's contemporary voice. Ottoman and Byzantine works from any source score here exclusively.",
+   lore:"Mehmed II took Constantinople in 1453 and kept the Hagia Sophia's mosaics intact under whitewash — he understood he had inherited something irreplaceable. Topkapı was built over the following decades and never stopped accumulating. The city has been a crossroads for longer than most civilizations have existed."},
+
+  {id:'abu-dhabi', name:'Abu Dhabi', flag:'🇦🇪', sub:'Louvre Abu Dhabi · Guggenheim Abu Dhabi',
+   region:'MENA', status:'expanded',
+   affinities:[
+     {tag:'Persian',            mult:1.9, color:'#d97706'},
+     {tag:'Islamic',            mult:1.8, color:'#b45309'},
+     {tag:'Safavid',            mult:1.9, color:'#92400e'},
+     {tag:'Gulf',               mult:2.0, color:'#78350f'},
+     {tag:'Contemporary',       mult:1.6, color:'#fde68a'},
+   ],
+   strategy:"Louvre Abu Dhabi opened in 2017 with a mandate of universal civilization — Islamic, Persian, Gulf, and global collections under one dome designed by Jean Nouvel. Persian and Safavid tags find their closest viable home here; Tehran cannot currently receive international loans. Works from the Metropolitan and Harvard's Islamic and Persian holdings score at near-maximum strength here.",
+   lore:"Louvre Abu Dhabi sits under a latticed dome that breaks sunlight into overlapping circles Jean Nouvel called a rain of light. It was built around the argument that all human civilization is one continuous conversation — and the building makes that argument physically, before you see a single work inside it."},
+
+  // ─ AFRICA ───────────────────────────────────────────────────────
+  {id:'dakar', name:'Dakar', flag:'🇸🇳', sub:'IFAN Museum of African Arts · Dak\'Art Biennale',
+   region:'Africa', status:'expanded',
+   affinities:[
+     {tag:'African',            mult:2.0, color:'#16a34a'},
+     {tag:'West African',       mult:2.0, color:'#22c55e'},
+     {tag:'Sub-Saharan African',mult:1.8, color:'#4ade80'},
+     {tag:'Contemporary African',mult:1.7,color:'#86efac'},
+   ],
+   strategy:"African and West African tags reach maximum strength here — the only city in the system carrying African identity. The IFAN Museum holds the deepest West African traditional collection anywhere: Yoruba, Akan, Bamana, Senufo, Benin bronze work. The Dak'Art Biennale, founded in 1992, is the oldest and most internationally recognized African art event. Works from the Smithsonian's National Museum of African Art and Cleveland's African holdings score exclusively here.",
+   lore:"Artists come to the Dak'Art Biennale from across the continent and diaspora not because they have to but because something real happens there — the same reason painters once went to Paris. IFAN holds the goldweights, the Benin bronzes, the ceremonial objects that the tradition is built on."},
+
+  // ─ SOUTH ASIA ────────────────────────────────────────────────────
+  {id:'delhi', name:'Delhi', flag:'🇮🇳', sub:'National Museum · National Gallery of Modern Art',
+   region:'South Asia', status:'expanded',
+   affinities:[
+     {tag:'Indian',             mult:2.0, color:'#f97316'},
+     {tag:'Mughal',             mult:2.0, color:'#fb923c'},
+     {tag:'Rajput',             mult:1.8, color:'#fdba74'},
+     {tag:'Hindu',              mult:1.7, color:'#fde68a'},
+     {tag:'Buddhist',           mult:1.6, color:'#fef3c7'},
+   ],
+   strategy:"Indian and Mughal tags reach maximum strength simultaneously — the only city in the system carrying South Asian identity. The National Museum holds five thousand years of Indian visual culture: Mughal miniatures, Rajput painting, Buddhist sculpture, Chola bronzes, Harappan seals. Works from Cleveland's world-class South Asian holdings, Harvard's Indian collection, and the Smithsonian's Freer and Sackler galleries score exclusively here.",
+   lore:"The Mughal court painters made portraits with a precision that equaled the Italian Renaissance and a palette that exceeded it — working for emperors who also collected European paintings and compared them openly. The National Museum holds this alongside Harappan seals from 3000 BCE: the full span of the subcontinent's image-making in one building."},
+
+  // ─ AMERICAS ──────────────────────────────────────────────────────
+  {id:'new-york', name:'New York', flag:'🇺🇸', sub:'Metropolitan Museum of Art · MoMA · Guggenheim',
+   region:'Americas', status:'core', dbCity:true, dbLabel:'MET',
+   affinities:[
+     {tag:'American',           mult:1.9, color:'#06b6d4'},
+     {tag:'Modern',             mult:1.8, color:'#22d3ee'},
+     {tag:'Abstract',           mult:1.8, color:'#67e8f9'},
+     {tag:'Contemporary',       mult:1.7, color:'#a5f3fc'},
+   ],
+   strategy:"The Metropolitan Museum of Art, one of our eight primary collection sources, holds the broadest single collection in the world — American, Modern, Abstract Expressionist, and Contemporary works score at near-maximum strength here. MoMA defined what Modern meant for fifty years. The largest global art market; revenue weight is the highest in the system.",
+   lore:"MoMA defined what 'Modern' meant for fifty years by deciding what hung on its walls — and the artists who didn't make the cut knew it immediately. The Metropolitan keeps building new wings because the collection keeps outgrowing them. No other city has been the center of the global art market for this long and shows no sign of releasing the position."},
+
+
+  {id:'washington', name:'Washington DC', flag:'🇺🇸', sub:'Smithsonian Institution · National Gallery of Art',
+   region:'Americas', status:'expanded', dbCity:true, dbLabel:'SMITHSONIAN',
+   affinities:[
+     {tag:'American',           mult:1.8, color:'#06b6d4'},
+     {tag:'Native American',    mult:2.0, color:'#22d3ee'},
+     {tag:'African American',   mult:1.9, color:'#67e8f9'},
+     {tag:'Folk Art',           mult:1.7, color:'#a5f3fc'},
+     {tag:'Natural History',    mult:1.6, color:'#cffafe'},
+   ],
+   strategy:"The Smithsonian Institution, one of our eight primary collection sources, holds nineteen museums and galleries collectively representing the widest American collection on earth. Native American tags reach maximum strength exclusively here — the National Museum of the American Indian holds the most comprehensive collection of Native material culture anywhere. African American art scores at near-maximum through the National Museum of African American History and Culture.",
+   lore:"The Smithsonian holds nineteen museums — the National Museum of the American Indian, the National Museum of African American History, the Freer and Sackler galleries of Asian art. Each one is its own argument about what deserves to be taken seriously, and the answer in every case is unambiguous."},
+
+  {id:'los-angeles', name:'Los Angeles', flag:'🇺🇸', sub:'Getty Center · LACMA · MOCA · Hammer Museum',
+   region:'Americas', status:'expanded',
+   affinities:[
+     {tag:'Photography',        mult:2.0, color:'#06b6d4'},
+     {tag:'Video Art',          mult:1.9, color:'#22d3ee'},
+     {tag:'Contemporary',       mult:1.8, color:'#67e8f9'},
+     {tag:'Pacific',            mult:1.7, color:'#a5f3fc'},
+   ],
+   strategy:"Photography tags reach maximum strength exclusively here — the Getty Center holds one of the world's great photography collections alongside European masters, and no other city in the system competes at this level for photographic work. Video Art tags are also near-exclusive to Los Angeles. LACMA's Pacific and Oceanian collections give Pacific art a rare urban destination. Distinct from New York: LA is the city of the image, not the market.",
+   lore:"The Getty sits on a hilltop and holds Weston photographs in the same building as Rembrandt drawings — the camera treated with the same seriousness as the brush. The city that produces images for the world has an unusual depth for work that thinks about what images do, what they cost, and who they're for."},
+
+  // ─ LATIN AMERICA ──────────────────────────────────────────────────
+  {id:'mexico-city', name:'Mexico City', flag:'🇲🇽', sub:'Museo Nacional de Antropología · Palacio de Bellas Artes',
+   region:'Latin America', status:'expanded', group:'latam',
+   affinities:[
+     {tag:'Pre-Columbian',      mult:2.0, color:'#dc2626'},
+     {tag:'Mexican Muralism',   mult:2.0, color:'#ef4444'},
+     {tag:'Indigenous Americas',mult:1.9, color:'#f87171'},
+     {tag:'Latin American',     mult:1.6, color:'#fca5a5'},
+   ],
+   strategy:"Pre-Columbian and Mexican Muralism tags reach maximum strength simultaneously — the only city in the system carrying either. The Museo Nacional de Antropología holds the most complete Pre-Columbian collection on earth; Bellas Artes still has Rivera's murals on its walls. Works from the Smithsonian's National Museum of the American Indian and Cleveland's Pre-Columbian holdings score exclusively here.",
+   lore:"Rivera painted the murals at Bellas Artes on walls so large they became architecture — the scale was deliberate, a claim about who art is for. The Antropología holds the Aztec Sun Stone, the Olmec heads, civilizations that never needed European approval to be serious about what they made."},
+
+  {id:'sao-paulo', name:'São Paulo', flag:'🇧🇷', sub:'MASP · Instituto Moreira Salles · Pinacoteca do Estado',
+   region:'Latin America', status:'core', group:'latam',
+   affinities:[
+     {tag:'Latin American',     mult:2.0, color:'#16a34a'},
+     {tag:'Brazilian',          mult:2.0, color:'#22c55e'},
+     {tag:'Modern',             mult:1.6, color:'#4ade80'},
+     {tag:'Baroque',            mult:1.5, color:'#86efac'},
+   ],
+   strategy:"Latin American and Brazilian tags reach maximum strength simultaneously. MASP — the Museu de Arte de São Paulo — holds the strongest art collection in the Southern Hemisphere; its glass easels suspend paintings in midair so the viewer can see through them to the city below. Tarsila do Amaral, Di Cavalcanti, the full Brazilian Modernist tradition peaks here.",
+   lore:"MASP suspends its paintings in glass easels so you see the São Paulo skyline through the gaps between Raphael and Renoir. The collection is the strongest in South America — not a provincial outpost of European taste but a place that holds Portinari and Tarsila do Amaral with the same seriousness. Latin American work, and Brazilian work specifically, arrives here at full strength in a city that has always taken it seriously."},
+
+  // ─ EAST ASIA ─────────────────────────────────────────────────────
+  {id:'tokyo', name:'Tokyo', flag:'🇯🇵', sub:'Tokyo National Museum · Mori Art Museum · teamLab',
+   region:'East Asia', status:'core', group:'japan',
+   affinities:[
+     {tag:'Japanese',           mult:2.0, color:'#ef4444'},
+     {tag:'Ukiyo-e',            mult:2.0, color:'#fca5a5'},
+     {tag:'East Asian',         mult:1.7, color:'#f87171'},
+     {tag:'Impressionism',      mult:1.6, color:'#8b5cf6'},
+     {tag:'Contemporary',       mult:1.7, color:'#fed7aa'},
+   ],
+   strategy:"Japanese and Ukiyo-e tags reach maximum strength simultaneously. The Tokyo National Museum holds the world's most comprehensive Japanese collection. Impressionism scores at meaningful strength here because the movement's debt to Japanese woodblock prints is structural — Monet's haystacks, Van Gogh's copies of Hiroshige, the entire Western relearning of flatness and color — and Tokyo audiences understand this better than any other.",
+   lore:"Hiroshige and Hokusai crossed the Pacific in trade ships and rewired how Europeans thought about color, flatness, and the diagonal. Monet collected over two hundred Japanese prints; Van Gogh copied Hiroshige directly. The debt was never fully acknowledged — but Tokyo holds the tradition that taught the West what it had been missing."},
+
+  {id:'kyoto', name:'Kyoto', flag:'🇯🇵', sub:'Kyoto National Museum · Nijo Castle · Nishiki Market',
+   region:'East Asia', status:'expanded', group:'japan',
+   affinities:[
+     {tag:'Japanese',           mult:1.9, color:'#ef4444'},
+     {tag:'Zen',                mult:2.0, color:'#f87171'},
+     {tag:'Buddhist',           mult:1.9, color:'#fca5a5'},
+     {tag:'Ceramics',           mult:1.8, color:'#fed7aa'},
+     {tag:'Textile',            mult:1.7, color:'#fde68a'},
+   ],
+   strategy:"Zen and Buddhist tags reach maximum strength here — the only city in the system anchoring the traditional Japanese aesthetic. Sixteen hundred temples, Nijo Castle, and five centuries of Zen visual culture. Cleveland's world-class Japanese ceramics collection feeds this affinity directly. Distinct from Tokyo: Kyoto owns classical and contemplative Japan; Tokyo owns Ukiyo-e and the contemporary.",
+   lore:"The Zen garden at Ryōanji has fifteen stones arranged so that no matter where you stand, one is always hidden behind another. The Kyoto National Museum holds the centuries before Edo — the quieter, slower tradition that Tokyo grew out of and moved away from."},
+
+  {id:'beijing', name:'Beijing', flag:'🇨🇳', sub:'Palace Museum (Forbidden City) · National Museum of China',
+   region:'East Asia', status:'core', group:'china',
+   affinities:[
+     {tag:'Chinese',            mult:2.0, color:'#dc2626'},
+     {tag:'Imperial',           mult:2.0, color:'#ef4444'},
+     {tag:'East Asian',         mult:1.8, color:'#f87171'},
+     {tag:'Buddhist',           mult:1.7, color:'#fca5a5'},
+     {tag:'Bronze Age',         mult:1.6, color:'#fed7aa'},
+   ],
+   strategy:"Chinese and Imperial tags reach maximum strength simultaneously. The Palace Museum inside the Forbidden City holds the imperial collection accumulated across five dynasties — porcelain, scroll painting, jade, lacquerwork, bronze. Harvard Art Museums' and Cleveland's Chinese holdings, among our primary collection sources, feed this affinity directly. Works carrying Chinese identity or Imperial character score here above anywhere in the system.",
+   lore:"The Palace Museum is inside the Forbidden City — the collection lives in the building it was made for, still inside the walls that commissioned it. Seven hundred years of imperial accumulation: the scale of this context has no equivalent anywhere else in this system."},
+
+  {id:'shanghai', name:'Shanghai', flag:'🇨🇳', sub:'Shanghai Museum · Power Station of Art · Long Museum',
+   region:'East Asia', status:'expanded', group:'china',
+   affinities:[
+     {tag:'Chinese',            mult:1.8, color:'#dc2626'},
+     {tag:'Shanghai School',    mult:2.0, color:'#ef4444'},
+     {tag:'Modern Chinese',     mult:1.9, color:'#f87171'},
+     {tag:'Contemporary',       mult:1.7, color:'#fca5a5'},
+   ],
+   strategy:"Shanghai School tags reach maximum strength exclusively here — Wu Changshuo, Ren Yi, Qi Baishi's urban-inflected painting tradition is anchored to this city alone. Modern Chinese art — the twentieth-century tradition that was neither imperial nor revolutionary — peaks here while Beijing holds classical and imperial works. The Power Station of Art is China's largest contemporary museum.",
+   lore:"Wu Changshuo painted chrysanthemums with an ink-brush speed that looked like something other than painting — urban, commercially aware, attached to nothing but itself. The Power Station of Art is a converted turbine hall on the Huangpu — the same move Shanghai has made to itself, repeatedly, across two centuries: keep the bones, change everything else."},
+
+  // ─ KOREA ─────────────────────────────────────────────────────────
+  {id:'seoul', name:'Seoul', flag:'🇰🇷', sub:'National Museum of Korea · Leeum Samsung Museum',
+   region:'East Asia', status:'expanded',
+   affinities:[
+     {tag:'Korean',             mult:2.0, color:'#6366f1'},
+     {tag:'Joseon',             mult:2.0, color:'#818cf8'},
+     {tag:'Goryeo',             mult:1.9, color:'#a5b4fc'},
+     {tag:'Celadon',            mult:1.9, color:'#c7d2fe'},
+     {tag:'Buddhist',           mult:1.6, color:'#e0e7ff'},
+   ],
+   strategy:"Korean and Joseon tags reach maximum strength simultaneously — the only city in the system carrying Korean identity. The National Museum of Korea holds Goryeo celadon and Joseon white porcelain traditions that no other culture replicated at this level. Cleveland's world-class Korean collection, one of our primary Asian sources, feeds this affinity directly. Korean work from any of our eight collections scores exclusively here.",
+   lore:"Goryeo potters achieved a translucent green glaze for two hundred years that no other culture replicated — specific to a clay body and kiln temperature that existed once and then didn't. The National Museum holds this alongside Joseon portrait painting of equal, quieter precision. Korean work has its sole destination in this system here."},
+
+  // ─ AUSTRALIA / PACIFIC ────────────────────────────────────────────
+  {id:'sydney', name:'Sydney', flag:'🇦🇺', sub:'Art Gallery of New South Wales · Museum of Contemporary Art',
+   region:'Pacific', status:'expanded',
+   affinities:[
+     {tag:'Pacific',            mult:2.0, color:'#06b6d4'},
+     {tag:'Oceanian',           mult:1.9, color:'#22d3ee'},
+     {tag:'Aboriginal Australian',mult:1.9,color:'#67e8f9'},
+     {tag:'Australian',         mult:1.8, color:'#a5f3fc'},
+     {tag:'Heidelberg School',  mult:1.8, color:'#cffafe'},
+   ],
+   strategy:"Pacific and Oceanian tags reach maximum strength exclusively here — the only city in the system carrying Pacific identity. Works from the Metropolitan's Oceanian department and the Smithsonian's Pacific collections score here with no competing city. The Art Gallery of NSW holds Aboriginal Australian work, Polynesian, and Melanesian collections that no Northern Hemisphere institution matches in depth. The Heidelberg School — Australian Impressionism — is also exclusive to this city.",
+   lore:"Aboriginal Australian visual traditions are sixty thousand years old — the oldest continuous artistic practice on earth. The Art Gallery of NSW holds this alongside Polynesian navigational objects and Heidelberg painters who carried a borrowed light into Australian country and made it completely their own."},
+];
+
+// ══════════════════════════════════════════════════════════════════
+//  CONFLICT GROUPS
+// ══════════════════════════════════════════════════════════════════
+const GROUPS = {
+  benelux:{a:'amsterdam', b:'brussels',    state:'a',    label:'Benelux'},
+  mena:   {a:'cairo',     b:'istanbul',    state:'both', label:'MENA'},
+  latam:  {a:'sao-paulo', b:'mexico-city', state:'both', label:'Lat.Am'},
+  japan:  {a:'tokyo',     b:'kyoto',       state:'a',    label:'Japan'},
+  china:  {a:'beijing',   b:'shanghai',    state:'a',    label:'China'},
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  PRESETS
+// ══════════════════════════════════════════════════════════════════
+const PRESETS = {
+  core:     {solos:['paris','rome','madrid','berlin','london','moscow','new-york','athens'],
+             groups:{benelux:'a',mena:'a',latam:'a',japan:'a',china:'a'}},
+  western:  {solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens'],
+             groups:{benelux:'both',mena:'none',latam:'none',japan:'none',china:'none'}},
+  asia:     {solos:['seoul'],
+             groups:{benelux:'none',mena:'none',latam:'none',japan:'both',china:'both'}},
+  americas: {solos:['new-york','washington','los-angeles'],
+             groups:{benelux:'none',mena:'none',latam:'both',japan:'none',china:'none'}},
+  mena:     {solos:['abu-dhabi'],
+             groups:{benelux:'none',mena:'both',latam:'none',japan:'none',china:'none'}},
+  databases:{solos:['paris','new-york','washington','london'],
+             groups:{benelux:'a',mena:'none',latam:'none',japan:'a',china:'none'}},
+  all:      {solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens','moscow','abu-dhabi','dakar','delhi','new-york','washington','los-angeles','seoul','sydney'],
+             groups:{benelux:'both',mena:'both',latam:'both',japan:'both',china:'both'}},
+  none:     {solos:[],groups:{benelux:'none',mena:'none',latam:'none',japan:'none',china:'none'}},
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  REGION LAYOUT
+// ══════════════════════════════════════════════════════════════════
+const REGION_LAYOUT = [
+  {region:'France',                solos:['paris']},
+  {region:'Italy',                 solos:['rome']},
+  {region:'Iberia',                solos:['madrid']},
+  {region:'Benelux',               group:'benelux'},
+  {region:'German-speaking',       solos:['berlin','vienna']},
+  {region:'British Isles',         solos:['london']},
+  {region:'Nordic',                solos:['stockholm']},
+  {region:'Classical',             solos:['athens']},
+  {region:'Eastern Europe',        solos:['moscow']},
+  {region:'MENA',                  group:'mena', extra:{solos:['abu-dhabi']}},
+  {region:'Africa',                solos:['dakar']},
+  {region:'South Asia',            solos:['delhi']},
+  {region:'Americas',              solos:['new-york','washington','los-angeles']},
+  {region:'Latin America',         group:'latam'},
+  {region:'East Asia',             group:'japan', extra:{group:'china', solos:['seoul']}},
+  {region:'Pacific',               solos:['sydney']},
+];
+
+// ══════════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════════
+let soloActive = new Set(['paris','rome','madrid','berlin','london','moscow','new-york','athens']);
+let viewMode = 'curator'; // 'curator' | 'player'
+
+function activeCityIds() {
+  const ids = new Set(soloActive);
+  for (const g of Object.values(GROUPS)) {
+    if (g.state === 'a' || g.state === 'both') ids.add(g.a);
+    if (g.state === 'b' || g.state === 'both') ids.add(g.b);
+  }
+  return ids;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  VIEW TOGGLE
+// ══════════════════════════════════════════════════════════════════
+function setView(mode) {
+  viewMode = mode;
+  document.body.className = mode === 'player' ? 'player-mode' : 'curator-mode';
+  document.getElementById('seg-curator').classList.toggle('active', mode === 'curator');
+  document.getElementById('seg-player').classList.toggle('active', mode === 'player');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SELECTOR BUILDER
+// ══════════════════════════════════════════════════════════════════
+function buildSelector() {
+  const container = document.getElementById('region-rows');
+  container.innerHTML = REGION_LAYOUT.map(row => {
+    const cells = [];
+
+    const renderSolos = (ids) => ids.map(id => {
+      const city = CITIES.find(c => c.id === id);
+      if (!city) return '';
+      const on = soloActive.has(id);
+      const dbPip = city.dbCity ? `<span class="db-pip">${city.dbLabel}</span>` : '';
+      return `<button class="solo-btn ${on ? 'on' : ''}" onclick="toggleSolo('${id}')" id="sbtn-${id}">
+        <span class="flag">${city.flag}</span><span class="dot"></span>${city.name}${dbPip}
+      </button>`;
+    }).join('');
+
+    if (row.solos) cells.push(renderSolos(row.solos));
+    if (row.group) cells.push(renderGroupCtrl(row.group));
+    if (row.extra) {
+      if (row.extra.group) cells.push(renderGroupCtrl(row.extra.group));
+      if (row.extra.solos) cells.push(renderSolos(row.extra.solos));
+    }
+
+    return `<div class="region-row">
+      <span class="region-name">${row.region}</span>
+      <div class="region-cities">${cells.join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGroupCtrl(gid) {
+  const g = GROUPS[gid];
+  const ca = CITIES.find(c => c.id === g.a);
+  const cb = CITIES.find(c => c.id === g.b);
+  return `<div class="conflict-group" id="cg-${gid}">
+    <span class="conflict-label">${g.label}</span>
+    <button class="conflict-seg a ${g.state==='a'?'active':''}" onclick="setGroup('${gid}','a')">
+      <span class="flag">${ca.flag}</span>${ca.name}
+    </button>
+    <span class="conflict-divider">OR</span>
+    <button class="conflict-seg both ${g.state==='both'?'active both':''}" onclick="setGroup('${gid}','both')">Both</button>
+    <span class="conflict-divider">OR</span>
+    <button class="conflict-seg b ${g.state==='b'?'active':''}" onclick="setGroup('${gid}','b')">
+      <span class="flag">${cb.flag}</span>${cb.name}
+    </button>
+    <span class="conflict-divider" style="padding:0 4px">·</span>
+    <button class="conflict-seg ${g.state==='none'?'active':''}" style="font-size:10px;padding:5px 8px" onclick="setGroup('${gid}','none')">Off</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  CARD RENDERER
+// ══════════════════════════════════════════════════════════════════
+function renderCards() {
+  const active = activeCityIds();
+  const grid = document.getElementById('city-grid');
+
+  const sorted = [...CITIES].sort((a,b) => {
+    const aOn = active.has(a.id) ? 0 : 1;
+    const bOn = active.has(b.id) ? 0 : 1;
+    return aOn - bOn;
+  });
+
+  grid.innerHTML = sorted.map(city => {
+    const on = active.has(city.id);
+    const topAffinities = [...city.affinities].sort((a,b) => b.mult - a.mult).slice(0, 5);
+
+    const affinityRows = topAffinities.map(a => {
+      return `<div class="affinity-pill" style="background:${a.color}1a;">
+        <span class="affinity-pill-tag" style="color:${a.color}">${a.tag}</span>
+        <span class="affinity-pill-mult" style="color:${a.color}">${a.mult.toFixed(1)}×</span>
+      </div>`;
+    }).join('');
+
+    const dbTag = city.dbCity ? `<span class="city-db-tag">${city.dbLabel}</span>` : '';
+
+    return `<div class="city-card ${on?'':'off'} ${city.dbCity?'db-city':''}" id="card-${city.id}">
+      <div class="city-header">
+        <div class="city-flag">${city.flag}</div>
+        <div>
+          <div class="city-name">${city.name} ${dbTag}</div>
+          <div class="city-sub">${city.sub}</div>
+        </div>
+      </div>
+      <div class="city-body">
+        <div class="affinity-list">${affinityRows}</div>
+        <div class="city-strategy">
+          <span class="strategy-curator"><strong>Strategy:</strong> ${city.strategy}</span>
+          <span class="strategy-lore">${city.lore}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateStats(active);
+}
+
+function updateStats(active) {
+  const activeCities = CITIES.filter(c => active.has(c.id));
+  const tags = new Set(activeCities.flatMap(c => c.affinities.map(a => a.tag)));
+  const maxMult = Math.max(...activeCities.flatMap(c => c.affinities.map(a => a.mult)), 0);
+  const regions = new Set(activeCities.map(c => c.region));
+  document.getElementById('s-active').textContent = active.size;
+  document.getElementById('s-tags').textContent = tags.size;
+  document.getElementById('s-maxmult').textContent = maxMult ? maxMult.toFixed(1)+'×' : '—';
+  document.getElementById('s-coverage').textContent = regions.size;
+  document.getElementById('header-stat').textContent = active.size+' / '+CITIES.length+' cities active';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════════════════════════════════
+function toggleSolo(id) {
+  soloActive.has(id) ? soloActive.delete(id) : soloActive.add(id);
+  render();
+}
+function setGroup(gid, state) {
+  GROUPS[gid].state = state;
+  render();
+}
+function applyPreset(key, btn) {
+  const p = PRESETS[key];
+  if (!p) return;
+  soloActive = new Set(p.solos);
+  for (const [gid, state] of Object.entries(p.groups)) {
+    if (GROUPS[gid]) GROUPS[gid].state = state;
+  }
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function render() {
+  buildSelector();
+  renderCards();
+}
+
+render();
+</script>
+</body>
+</html>

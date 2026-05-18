@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtNexus · City Affinity — Philosophy & Design</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f12; --surface:#141720; --s2:#1c2030; --s3:#232840;
+  --border:#2a2e3d; --border2:#3a3f55; --text:#e2e6f0; --muted:#6b7280; --dim:#9ca3af;
+  --accent:#6366f1; --accent2:#818cf8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;line-height:1.7;min-height:100vh}
+
+/* ── LAYOUT ── */
+.page{max-width:780px;margin:0 auto;padding:48px 24px 96px}
+
+/* ── HEADER ── */
+.doc-header{margin-bottom:56px;border-bottom:1px solid var(--border);padding-bottom:32px}
+.doc-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:16px}
+.doc-title{font-family:'DM Serif Display',Georgia,serif;font-size:42px;line-height:1.15;color:var(--text);margin-bottom:16px;letter-spacing:-.3px}
+.doc-title em{color:var(--accent2);font-style:italic}
+.doc-sub{font-size:15px;color:var(--dim);line-height:1.65;max-width:620px}
+.doc-meta{margin-top:20px;display:flex;gap:20px;flex-wrap:wrap}
+.doc-meta-item{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.doc-meta-item strong{color:var(--dim)}
+
+/* ── TOC ── */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:48px}
+.toc-title{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:12px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:4px}
+.toc-list a{color:var(--dim);text-decoration:none;font-size:13px;display:flex;align-items:baseline;gap:8px;transition:color .12s}
+.toc-list a:hover{color:var(--accent2)}
+.toc-list a .toc-num{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);min-width:20px}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:56px}
+.section-num{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:8px}
+h2{font-family:'DM Serif Display',Georgia,serif;font-size:26px;color:var(--text);margin-bottom:16px;line-height:1.25;letter-spacing:-.2px}
+h3{font-size:13px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;margin:28px 0 10px;font-family:'IBM Plex Mono',monospace}
+p{color:var(--dim);margin-bottom:14px;font-size:14px;line-height:1.75}
+p strong{color:var(--text);font-weight:500}
+p em{color:var(--accent2);font-style:normal}
+
+/* ── PULL QUOTE ── */
+.pull{border-left:3px solid var(--accent);padding:12px 20px;margin:28px 0;background:var(--surface);border-radius:0 8px 8px 0}
+.pull p{color:var(--text);font-size:15px;font-style:italic;font-family:'DM Serif Display',Georgia,serif;margin:0;line-height:1.6}
+.pull .attr{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;font-style:normal;display:block}
+
+/* ── TABLE ── */
+.doc-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:12px}
+.doc-table th{padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace}
+.doc-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:top}
+.doc-table tr:last-child td{border-bottom:none}
+.doc-table td strong{color:var(--text);font-weight:500}
+.doc-table td em{color:var(--accent2);font-style:normal}
+.doc-table .mono{font-family:'IBM Plex Mono',monospace;font-size:11px}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:20px 0}
+
+/* ── CALLOUT ── */
+.callout{background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:16px 20px;margin:24px 0}
+.callout-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px}
+.callout p{color:var(--dim);font-size:13px;margin:0;line-height:1.7}
+.callout p + p{margin-top:8px}
+
+.callout.warn{border-color:#f59e0b44}
+.callout.warn .callout-label{color:#f59e0b}
+.callout.note{border-color:#6366f133}
+.callout.note .callout-label{color:var(--accent2)}
+
+/* ── CITY PILL GRID ── */
+.city-pill-grid{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.city-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--dim)}
+.city-pill .flag{font-size:15px}
+.city-pill.core{border-color:var(--border2)}
+.city-pill.new{border-color:#f59e0b55;color:#fbbf24}
+.city-pill.pair{border-color:#8b5cf655;color:#a78bfa}
+.city-pill.risk{border-color:#ef444433;color:#f87171}
+
+/* ── GAP TABLE ── */
+.gap-row{display:flex;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.gap-row:last-child{border-bottom:none}
+.gap-civ{font-size:13px;color:var(--text);min-width:180px;font-weight:500}
+.gap-city{font-size:12px;color:var(--accent2);min-width:120px;font-family:'IBM Plex Mono',monospace}
+.gap-reason{font-size:12px;color:var(--muted)}
+
+/* ── FORMULA BOX ── */
+.formula{background:var(--s3);border-radius:6px;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);margin:16px 0;border:1px solid var(--border)}
+
+/* ── DIVIDER ── */
+.divider{border:none;border-top:1px solid var(--border);margin:48px 0}
+
+/* ── FOOTNOTE ── */
+.footnotes{border-top:1px solid var(--border);padding-top:24px;margin-top:48px}
+.footnote{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px;display:flex;gap:8px}
+.footnote .fn-num{font-family:'IBM Plex Mono',monospace;color:var(--accent2);flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="doc-header">
+  <div class="doc-eyebrow">ArtNexus Internal Design Document</div>
+  <h1 class="doc-title">The Philosophy of<br><em>City Affinity</em></h1>
+  <p class="doc-sub">Why paintings have cities. How we decided which cities exist, what multipliers mean, where the system has honest gaps, and what principles make it complete — or as complete as our databases allow.</p>
+  <div class="doc-meta">
+    <span class="doc-meta-item"><strong>Databases</strong> Met · AIC · Rijks · Harvard · Cleveland · Smithsonian · Europeana · Wikidata</span>
+    <span class="doc-meta-item"><strong>Cities</strong> 28 active · 5 conflict pairs · 2 known gaps</span>
+    <span class="doc-meta-item"><strong>Version</strong> 2.0 — philosophically grounded</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ol class="toc-list">
+    <li><a href="#premise"><span class="toc-num">01</span>The Core Premise — why cities matter</a></li>
+    <li><a href="#databases"><span class="toc-num">02</span>The Database Foundation — what we actually have</a></li>
+    <li><a href="#selection"><span class="toc-num">03</span>City Selection — the three principles</a></li>
+    <li><a href="#civilizations"><span class="toc-num">04</span>Civilizational Coverage — the full map</a></li>
+    <li><a href="#conflicts"><span class="toc-num">05</span>Conflict Groups — when cities compete</a></li>
+    <li><a href="#multipliers"><span class="toc-num">06</span>Multiplier Philosophy — what the numbers mean</a></li>
+    <li><a href="#gaps"><span class="toc-num">07</span>Honest Gaps — what's missing and why</a></li>
+    <li><a href="#living"><span class="toc-num">08</span>The Living System — risk, seasons, evolution</a></li>
+  </ol>
+</nav>
+
+
+<!-- 01 PREMISE -->
+<div class="section" id="premise">
+  <div class="section-num">01</div>
+  <h2>The Core Premise</h2>
+
+  <p>A painting is not culturally neutral. A Vermeer carries Dutch identity the way a folk song carries language — it was made inside a specific world of patronage, audience, light, and belief. When that painting travels to Amsterdam, something real happens: the work arrives home, and an audience that has grown up inside the same cultural lineage receives it differently than any other audience on earth would.</p>
+
+  <p>City affinity is the system's attempt to <strong>quantify that resonance</strong>. Not the quality of the work — that's the scoring formula's job. But the amplification that happens when the right work meets the right city: when a Spanish Baroque painting arrives in Madrid, when Ukiyo-e woodblock prints are exhibited in Tokyo, when Egyptian antiquities return to Cairo. That amplification is real. It shows up in attendance figures, press coverage, loan negotiation leverage, and ultimately in exhibition value.</p>
+
+  <div class="pull">
+    <p>The multiplier is not a quality score. It is a <em>fit score</em> — how well a work's cultural identity resonates with a city's institutional and audience character.</p>
+    <span class="attr">Design principle, City Affinity v1.0</span>
+  </div>
+
+  <p>The system measures three things simultaneously: <strong>cultural identity</strong> (what is this work, at its core?), <strong>institutional depth</strong> (does this city have the museums, expertise, and audience to receive it?), and <strong>market resonance</strong> (will this city's collectors, press, and visitors respond?). A city earns its place in the system by satisfying all three, not just one.</p>
+</div>
+
+<hr class="divider">
+
+
+<!-- 02 DATABASES -->
+<div class="section" id="databases">
+  <div class="section-num">02</div>
+  <h2>The Database Foundation</h2>
+
+  <p>The system is only as philosophically sound as the data beneath it. A city with no matching tags in our databases is a ghost — it can't fire multipliers, can't score works, can't do anything. So before deciding which cities belong, we mapped what our eight databases actually contain.</p>
+
+  <div class="callout note">
+    <div class="callout-label">Critical constraint</div>
+    <p>Every city in the system must correspond to tag values that <em>actually appear</em> in at least one of our eight databases. A city added for cultural prestige alone — but whose tags never fire — is dead weight. The philosophy must be grounded in the data, not imposed on top of it.</p>
+  </div>
+
+  <h3>What each database contributes</h3>
+
+  <div class="tbl-wrap">
+    <table class="doc-table">
+      <thead><tr><th>Database</th><th>Objects</th><th>Strongest Tag Clusters</th><th>Home City</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Metropolitan Museum</strong></td><td class="mono">500k+</td><td>French, Dutch, Italian, Egyptian, Chinese, Japanese, Islamic, Greek, American — the broadest single source</td><td><em>New York</em></td></tr>
+        <tr><td><strong>Art Institute Chicago</strong></td><td class="mono">300k</td><td>Impressionism (top-3 globally), Post-Impressionism, American, Photography, Architecture, Modern</td><td><em>Chicago</em></td></tr>
+        <tr><td><strong>Rijksmuseum</strong></td><td class="mono">700k</td><td>Dutch, Golden Age, Flemish, Baroque — overwhelmingly 17th-century European</td><td><em>Amsterdam</em></td></tr>
+        <tr><td><strong>Harvard Art Museums</strong></td><td class="mono">250k</td><td>German Expressionism (Busch-Reisinger: world's best outside Germany), Impressionism, Ancient, Korean, Chinese, Japanese</td><td><em>Boston</em></td></tr>
+        <tr><td><strong>Cleveland Museum of Art</strong></td><td class="mono">60k</td><td>Japanese, Chinese, Korean, Indian, Buddhist, Medieval European, African, Pre-Columbian — the non-Western anchor</td><td><em>Cleveland</em></td></tr>
+        <tr><td><strong>Smithsonian</strong></td><td class="mono">155M</td><td>American, Native American, African American, African, Asian (Freer/Sackler), Contemporary</td><td><em>Washington DC</em></td></tr>
+        <tr><td><strong>Europeana</strong></td><td class="mono">50M</td><td>All Western European movements, Scandinavian/Nordic, Photography, Manuscripts — pan-European breadth</td><td><em>Pan-European</em></td></tr>
+        <tr><td><strong>Wikidata</strong></td><td class="mono">∞</td><td>Cross-reference for all movements, artists, genres, periods, materials — the connective tissue</td><td><em>Everywhere</em></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Two observations follow from this table that shaped the entire city selection.</p>
+
+  <p>First: <strong>two of our eight databases have a home city that was absent from the original system.</strong> The Smithsonian is one of our primary sources, yet Washington DC had no city affinity. Adding Washington DC to the city system is not expansion; it is correcting an oversight. (The Art Institute of Chicago is also a primary database, but Chicago was ultimately removed — see Honest Gaps — because its exclusive tag, Architecture, falls outside this system's operational scope.)</p>
+
+  <p>Second: <strong>Cleveland is the system's non-Western conscience.</strong> Where the Met and Rijks are predominantly European, Cleveland holds genuine world-class collections in Japanese, Korean, Indian, Buddhist, and African art. This means tags like <em>Korean</em>, <em>Joseon</em>, <em>Mughal</em>, <em>Indian</em>, <em>Buddhist</em>, and <em>Sub-Saharan African</em> exist in our data at meaningful volume — and every one of them needs a city to travel to.</p>
+</div>
+
+<hr class="divider">
+
+
+<!-- 03 SELECTION -->
+<div class="section" id="selection">
+  <div class="section-num">03</div>
+  <h2>City Selection — The Three Principles</h2>
+
+  <p>Not every city with great museums belongs in this system. The system's purpose is scoring works for exhibition routing, not producing an encyclopaedia of global art institutions. A city earns its place by satisfying three tests simultaneously.</p>
+
+  <h3>Principle I — Tag Existence</h3>
+  <p>The city's defining cultural tags must appear at meaningful frequency in our databases. <strong>Meaningful frequency means: common enough that a collection of 50–200 works would reliably contain several matches.</strong> A city whose signature tag fires on one work per thousand is not worth the system weight. This is why we do not yet have a Southeast Asian city — Khmer, Thai, and Indonesian tags exist in our databases, but sparsely. The principle says: wait until the database depth justifies it.</p>
+
+  <h3>Principle II — Institutional Exclusivity</h3>
+  <p>The city must offer something no other city in the system already covers. Rome covers Italian Renaissance. Florence covers the same ground with a slightly earlier emphasis. If the dominant database tag is simply <em>Renaissance</em> — not <em>Early Renaissance</em> — then Florence's multiplier fires on exactly the same works as Rome's, creating redundancy without signal. <strong>We tested this against actual Met and Harvard period field values</strong>: the majority of Italian Renaissance works carry <em>Renaissance</em>, not the qualified sub-period. Florence was therefore not added. The principle: every city must own at least one tag that no other city shares, or the system gains nothing from its presence.</p>
+
+  <h3>Principle III — Viable Touring Destination</h3>
+  <p>The city must be a real place where Western-held works can actually travel — with institutional infrastructure, insurance frameworks, and an established international loans culture. This principle is why Tehran is absent despite Persian miniatures being a significant tag in the Met and Harvard databases. The works exist. The city cannot receive them. <strong>Abu Dhabi serves as the Persian/Islamic Gulf proxy</strong> precisely because Louvre Abu Dhabi satisfies this principle where Tehran cannot.</p>
+
+  <div class="callout warn">
+    <div class="callout-label">The Moscow exception</div>
+    <p>Moscow currently violates Principle III due to geopolitical conditions. It is retained rather than removed because it satisfies Principles I and II with complete exclusivity — Russian Avant-garde, Constructivism, and Russian cultural identity have no substitute city in the system. Moscow is flagged as non-touring: its multipliers remain active for internal work valuation and scoring, but it is excluded from active routing recommendations until conditions change.</p>
+  </div>
+</div>
+
+<hr class="divider">
+
+
+<!-- 04 CIVILIZATIONS -->
+<div class="section" id="civilizations">
+  <div class="section-num">04</div>
+  <h2>Civilizational Coverage</h2>
+
+  <p>The deepest test of the system's completeness is not which cities are present but which <em>civilizations</em> are represented. A city is a proxy for a civilizational tradition — for thousands of years of artistic production that has been collected, catalogued, and made accessible through our databases. The question is whether every major tradition that appears in our data has somewhere to go.</p>
+
+  <h3>The complete civilizational map</h3>
+
+  <div class="tbl-wrap">
+    <table class="doc-table">
+      <thead><tr><th>Tradition</th><th>Tags in databases</th><th>City anchor</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Ancient Greek / Classical</strong></td><td class="mono">Ancient Greek, Classical, Hellenistic, Bronze Age</td><td>Athens 🇬🇷</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Ancient Egyptian</strong></td><td class="mono">Ancient Egyptian, Coptic, Dynastic</td><td>Cairo 🇪🇬</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Roman / Italian</strong></td><td class="mono">Italian, Renaissance, Baroque, Neoclassical, Mannerism</td><td>Rome 🇮🇹</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Byzantine</strong></td><td class="mono">Byzantine, Greek</td><td>Istanbul 🇹🇷, Athens 🇬🇷</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Ottoman</strong></td><td class="mono">Ottoman, Islamic (Ottoman)</td><td>Istanbul 🇹🇷</td><td><em>Covered — exclusive</em></td></tr>
+        <tr><td><strong>Persian / Safavid</strong></td><td class="mono">Persian, Safavid, Timurid, Islamic miniature</td><td>Abu Dhabi 🇦🇪</td><td><em>Covered via Gulf proxy</em></td></tr>
+        <tr><td><strong>Islamic (broad)</strong></td><td class="mono">Islamic, Arab, Mamluk, Abbasid</td><td>Cairo 🇪🇬, Istanbul 🇹🇷, Abu Dhabi 🇦🇪</td><td><em>Covered — three nodes</em></td></tr>
+        <tr><td><strong>West / Sub-Saharan African</strong></td><td class="mono">African, West African, Yoruba, Benin Kingdom, Akan</td><td>Dakar 🇸🇳</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>South Asian / Mughal / Indian</strong></td><td class="mono">Indian, Mughal, Rajput, Hindu, Buddhist (Indian)</td><td>Delhi 🇮🇳</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>East Asian — Chinese</strong></td><td class="mono">Chinese, Imperial, East Asian, Buddhist (Chinese)</td><td>Beijing 🇨🇳 / Shanghai 🇨🇳</td><td><em>Covered — paired</em></td></tr>
+        <tr><td><strong>East Asian — Japanese</strong></td><td class="mono">Japanese, Ukiyo-e, Zen, Buddhist (Japanese), Ceramics</td><td>Tokyo 🇯🇵 / Kyoto 🇯🇵</td><td><em>Covered — paired</em></td></tr>
+        <tr><td><strong>East Asian — Korean</strong></td><td class="mono">Korean, Joseon, Goryeo, Celadon</td><td>Seoul 🇰🇷</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Scandinavian / Nordic</strong></td><td class="mono">Scandinavian, Swedish, Norwegian, Viking, Nordic Realism</td><td>Stockholm 🇸🇪</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Western European (French)</strong></td><td class="mono">French, Impressionism, Post-Impressionism, Art Nouveau, Rococo</td><td>Paris 🇫🇷</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Western European (Dutch / Flemish)</strong></td><td class="mono">Dutch, Golden Age, Flemish, Baroque</td><td>Amsterdam 🇳🇱 / Brussels 🇧🇪</td><td><em>Covered — paired</em></td></tr>
+        <tr><td><strong>Western European (Italian)</strong></td><td class="mono">Italian, Renaissance, Baroque, Neoclassical</td><td>Rome 🇮🇹</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Western European (Spanish)</strong></td><td class="mono">Spanish, Baroque, Surrealism, Velázquez-era</td><td>Madrid 🇪🇸</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Western European (German-Austrian)</strong></td><td class="mono">German, Expressionism, Bauhaus, Austrian, Vienna Secession</td><td>Berlin 🇩🇪, Vienna 🇦🇹</td><td><em>Covered — both active</em></td></tr>
+        <tr><td><strong>Western European (British)</strong></td><td class="mono">British, Pre-Raphaelite, Romanticism, Turner-era</td><td>London 🇬🇧</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Russian / Eastern European</strong></td><td class="mono">Russian, Avant-garde, Constructivism, Realism</td><td>Moscow 🇷🇺</td><td><em>Covered — non-touring</em></td></tr>
+        <tr><td><strong>North American</strong></td><td class="mono">American, Modern, Abstract, Contemporary, Native American, Photography</td><td>NYC 🇺🇸, DC 🇺🇸, LA 🇺🇸</td><td><em>Covered — three nodes</em></td></tr>
+        <tr><td><strong>Latin American</strong></td><td class="mono">Latin American, Brazilian, Pre-Columbian, Muralism</td><td>São Paulo 🇧🇷 / Mexico City 🇲🇽</td><td><em>Covered — paired</em></td></tr>
+        <tr><td><strong>Pacific / Oceanian / Australian</strong></td><td class="mono">Pacific, Oceanian, Aboriginal Australian, Polynesian</td><td>Sydney 🇦🇺</td><td><em>Covered</em></td></tr>
+        <tr><td><strong>Southeast Asian</strong></td><td class="mono">Thai, Khmer, Indonesian, Vietnamese</td><td>—</td><td><em>Gap — database too thin</em></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Every major tradition with significant database representation has a city. The one remaining gap — Southeast Asian — is not a philosophical failure but an honest accounting: our databases hold too few works tagged Khmer, Thai, or Indonesian to justify the system weight of an additional city. When database depth increases, Singapore or Bangkok is the natural addition.</p>
+
+  <h3>Per-city audit — is each city the right choice?</h3>
+
+  <p>The civilizational coverage table shows that every tradition has a city. The harder question is whether each city is the best available choice for its tradition — not just present, but correct. A brief audit:</p>
+
+  <p><strong>Paris</strong> — irreplaceable. Impressionism, Post-Impressionism, Art Nouveau, Rococo: no other city competes. The Louvre, Musée d'Orsay, and Centre Pompidou cover three centuries without overlap. <strong>Rome</strong> — irreplaceable. Italian, Renaissance, Baroque, and Neoclassical tags have no substitute. <strong>Madrid</strong> — exclusive home of Spanish Baroque and Surrealism's Spanish line (Dalí, Miró, Picasso via the Reina Sofía). <strong>Berlin</strong> — exclusive home of Expressionism and Bauhaus; the Busch-Reisinger at Harvard feeds Berlin's multipliers more directly than any other non-Berlin institution. <strong>Vienna</strong> — exclusive: Vienna Secession, Klimt, Schiele, Austro-Hungarian decorative arts. Does not overlap with Berlin. <strong>London</strong> — exclusive: British, Pre-Raphaelite, Turner, Romanticism. The National Gallery and V&amp;A have no equivalent. <strong>Stockholm</strong> — exclusive: Nordic Realism and Scandinavian tags have no other home in the system. Europeana's Nordic holdings are deep.</p>
+
+  <p><strong>Amsterdam</strong> and <strong>Brussels</strong> are paired on Dutch/Flemish — the only pair where Principle II (institutional exclusivity) requires nuance. Amsterdam owns Dutch Golden Age; Brussels owns Flemish Baroque and Surrealism. Together they cover a tradition whose painters moved freely between cities. The pairing is correct; neither city alone is sufficient. <strong>Athens</strong> — exclusive: Ancient Greek, Hellenistic, and Classical tags have no substitute. <strong>Moscow</strong> — exclusive (non-touring): Russian Avant-garde and Constructivism exist in no other city in this system. Removal would leave the entire Russian tradition unscored. Moscow stays in a degraded state rather than being cut.</p>
+
+  <p><strong>Cairo</strong> and <strong>Istanbul</strong> are paired on MENA. Cairo owns Ancient Egyptian exclusively; Istanbul owns Ottoman exclusively. Both also carry Islamic tags, but from different periods and stylistic lineages. The pair is correct. <strong>Abu Dhabi</strong> — Gulf proxy for Persian/Safavid/Islamic miniature tradition. Louvre Abu Dhabi is a genuine institution, not a prestige vanity project. No alternative city can receive these works under current conditions. <strong>Delhi</strong> — exclusive: Mughal, Rajput, Hindu, and Indian tags; the National Museum's depth in Mughal miniature and sculpture is unmatched.</p>
+
+  <p><strong>Seoul</strong> — exclusive: Korean, Joseon, Goryeo, and Celadon tags belong nowhere else. Cleveland's world-class Korean collection is a primary feeder. <strong>Tokyo/Kyoto</strong> pair: exclusive and non-overlapping. Tokyo owns Ukiyo-e, Japonisme, and contemporary Japan; Kyoto owns classical/Zen tradition. The pair is the correct architecture for Japanese art's internal diversity. <strong>Beijing/Shanghai</strong> pair: exclusive and non-overlapping. Beijing owns Imperial and classical Chinese traditions; Shanghai owns the Shanghai School and urban Modern Chinese painting. <strong>Sydney</strong> — Pacific and Oceanian anchor; see the standalone analysis below. <strong>São Paulo/Mexico City</strong> pair: exclusive. São Paulo anchors Brazilian and South American contemporary; Mexico City anchors Pre-Columbian and Muralism, which has no other home in the system.</p>
+
+  <p>The three remaining American cities are addressed briefly above. Chicago was removed from the system — see Honest Gaps for the full reasoning. The audit conclusion: every city currently in the system passes all three selection principles, with Dakar carrying the only live tension (cultural correctness vs. logistical robustness).</p>
+</div>
+
+<hr class="divider">
+
+
+<!-- 05 CONFLICTS -->
+<div class="section" id="conflicts">
+  <div class="section-num">05</div>
+  <h2>Conflict Groups — When Cities Compete</h2>
+
+  <p>Five pairs of cities share enough cultural DNA that activating both without intention creates redundancy — two multipliers firing on the same works, diluting the signal from each. These are not errors in the system; they are designed choices. The pair structure gives curators explicit control: pick one for a focused collection tour, pick both for complete civilizational coverage, or turn the region off entirely.</p>
+
+  <h3>The five conflict pairs</h3>
+
+  <div class="tbl-wrap">
+    <table class="doc-table">
+      <thead><tr><th>Pair</th><th>Shared tags</th><th>What differentiates them</th><th>Default</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Amsterdam 🇳🇱 / Brussels 🇧🇪</strong></td>
+          <td class="mono">Flemish, Baroque</td>
+          <td>Amsterdam owns Dutch Golden Age exclusively. Brussels owns Belgian Surrealism (Magritte) and Symbolism exclusively. Both share Flemish — activate both for full Flemish coverage.</td>
+          <td><em>Amsterdam</em></td>
+        </tr>
+        <tr>
+          <td><strong>Cairo 🇪🇬 / Istanbul 🇹🇷</strong></td>
+          <td class="mono">Islamic, Byzantine</td>
+          <td>Cairo = Ancient Egyptian + Coptic + broad Islamic. Istanbul = Ottoman exclusively + Byzantine. Differentiated enough to run both simultaneously with minimal redundancy.</td>
+          <td><em>Both</em></td>
+        </tr>
+        <tr>
+          <td><strong>Tokyo 🇯🇵 / Kyoto 🇯🇵</strong></td>
+          <td class="mono">Japanese, Buddhist</td>
+          <td>Tokyo = Ukiyo-e, Contemporary, Impressionism-influenced. Kyoto = Zen, Ceramics, traditional Buddhist. Genuinely distinct periods and media — both active gives complete Japanese coverage.</td>
+          <td><em>Tokyo</em></td>
+        </tr>
+        <tr>
+          <td><strong>Beijing 🇨🇳 / Shanghai 🇨🇳</strong></td>
+          <td class="mono">Chinese</td>
+          <td>Beijing = Imperial, dynastic, classical Chinese exclusively. Shanghai = Shanghai School, Modern Chinese exclusively. The split is clean at the dynasty/modern boundary.</td>
+          <td><em>Beijing</em></td>
+        </tr>
+        <tr>
+          <td><strong>São Paulo 🇧🇷 / Mexico City 🇲🇽</strong></td>
+          <td class="mono">Latin American, Modern</td>
+          <td>São Paulo = Brazilian specifically, Modern, Baroque legacy. Mexico City = Pre-Columbian exclusively, Mexican Muralism exclusively. Minimal overlap; both active is ideal.</td>
+          <td><em>Both</em></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pull">
+    <p>A conflict group is not a problem to solve. It is a <em>choice to make visible</em>. The UI surfaces the decision; the curator makes it deliberately rather than stumbling into redundancy.</p>
+  </div>
+
+  <h3>Why Rome stands alone</h3>
+  <p>The original design proposed Rome and Florence as a conflict pair — Early Renaissance vs High Renaissance. We decided against this after examining actual tag values in our databases. The Met's <em>period</em> field, Harvard's, and Cleveland's predominantly emit <em>Renaissance</em> as a flat value, not the qualified sub-period <em>Early Renaissance</em> or <em>High Renaissance</em>. Florence's signature multiplier would fire on a small minority of specifically-tagged works, while both cities would share the dominant <em>Italian</em> and <em>Renaissance</em> tags. The result would be two cities with nearly identical firing patterns — precisely the redundancy the conflict group design exists to prevent. <strong>Rome stands alone, covering the full Italian tradition. Florence is reserved for a future version when sub-period tagging is more consistent across our databases.</strong></p>
+</div>
+
+<hr class="divider">
+
+
+<!-- 06 MULTIPLIERS -->
+<div class="section" id="multipliers">
+  <div class="section-num">06</div>
+  <h2>Multiplier Philosophy</h2>
+
+  <p>The multiplier is a ratio: how much more exhibition value does this work generate in this city compared to a culturally-neutral venue? A multiplier of 1.0 means no affinity effect. A multiplier of 2.0 means the work generates twice the exhibition value in this city compared to baseline. Multipliers stack multiplicatively — a French Impressionist painting in Paris applies both the French (2.0×) and Impressionism (2.0×) multipliers, yielding a 4.0× effective boost.</p>
+
+  <h3>Why multiplicative, not additive?</h3>
+  <p>Additive stacking would mean a French Impressionist in Paris scores (2.0 + 2.0 - 1.0) = 3.0×. Multiplicative stacking gives 2.0 × 2.0 = 4.0×. The multiplicative model is correct because cultural resonance compounds — an audience that already has the cultural context for French art is even more receptive to Impressionism specifically. The effects are not independent variables; they reinforce each other exponentially.</p>
+
+  <h3>Why 2.0× as the maximum single-tag multiplier?</h3>
+  <p>A 2.0× multiplier means the work is worth twice as much in this city as anywhere else. This is calibrated to real-world exhibition economics: a Rembrandt in Amsterdam does not sell twice as many tickets as a Rembrandt in Berlin — but the press coverage, institutional prestige, and loan fee leverage are roughly double. 2.0× represents the ceiling of believable cultural resonance, not an arbitrary number. Tags set at 2.0× are exclusively those where the city is the singular, unambiguous home of the tradition.</p>
+
+  <h3>The multiplier scale</h3>
+
+  <div class="tbl-wrap">
+    <table class="doc-table">
+      <thead><tr><th>Multiplier</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td class="mono" style="color:#818cf8"><strong>2.0×</strong></td><td>Home. This city is the singular institutional and cultural anchor for this tag. No other city competes.</td><td>Dutch → Amsterdam, Ancient Egyptian → Cairo, Zen → Kyoto</td></tr>
+        <tr><td class="mono" style="color:#10b981"><strong>1.8–1.9×</strong></td><td>Strong affinity. The city has deep institutional history with this tag and a primed audience, but shares it with at least one other city.</td><td>Baroque → Madrid, Pre-Raphaelite → London, Avant-garde → Moscow</td></tr>
+        <tr><td class="mono" style="color:#f59e0b"><strong>1.6–1.7×</strong></td><td>Meaningful affinity. The tag resonates clearly here and influences exhibition value, but is not the city's defining identity.</td><td>Impressionism → Tokyo (Japan-influenced French painters), Buddhist → Beijing</td></tr>
+        <tr><td class="mono" style="color:#6b7280"><strong>1.4–1.5×</strong></td><td>Soft affinity. Present but minor — worth accounting for but not a primary routing signal.</td><td>Baroque → São Paulo, Coptic → Cairo, Socialist Realism → Moscow</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The stacking ceiling question</h3>
+  <p>The theoretical maximum — a French Impressionist in Paris, both tags at 2.0× — yields 4.0×. This is the highest possible value in the system. Should there be a hard cap? The argument for a cap (say, 3.5×) is that no work truly generates four times its baseline value anywhere. The argument against is that the 4.0× case is deliberately rare — it requires both a national identity match AND a movement match, and only a handful of cities can produce it. The rarity itself functions as the cap. <strong>We do not impose an artificial ceiling.</strong> The data should be trusted: if a work genuinely stacks two 2.0× multipliers, it belongs in that city above almost everything else.</p>
+</div>
+
+<hr class="divider">
+
+
+<!-- 07 GAPS -->
+<div class="section" id="gaps">
+  <div class="section-num">07</div>
+  <h2>Honest Gaps</h2>
+
+  <p>No system built on specific databases can be complete in an absolute sense. The following gaps are real, acknowledged, and intentionally left open — not because they were forgotten, but because the current state of our data does not justify filling them.</p>
+
+  <h3>Southeast Asian art</h3>
+  <p>Khmer, Thai, Indonesian, and Vietnamese works exist across the Met, Cleveland, and Harvard databases. The tags are real. But the volume is thin compared to every other tradition in our system — sparse enough that a Southeast Asian city would be an almost-empty node, firing on works few and far between. The city for this tradition, when the database depth arrives, is <strong>Singapore</strong> (National Museum, Asian Civilisations Museum) or Bangkok (National Museum). The principle holds: build the city when the data supports it, not before.</p>
+
+  <h3>Persian art — the Tehran problem</h3>
+  <p>Persian miniatures from the Safavid and Timurid periods are significant holdings in both the Met and Harvard. The tag <em>Persian</em> fires at meaningful volume. But Tehran cannot receive works under current conditions. <strong>Abu Dhabi is the system's response</strong> — Louvre Abu Dhabi holds significant Islamic and Persian collections, functions as a Gulf cultural bridge, and represents a growing market with institutional credibility. It is an honest proxy, not a perfect solution. The perfect solution is a future in which Tehran participates in international loans. Until then, Abu Dhabi carries the signal.</p>
+
+  <h3>Eastern European beyond Russia</h3>
+  <p>Czech, Polish, Hungarian, and Romanian art exist in Europeana. The movements — Czech Cubism, Polish Symbolism, Hungarian Art Nouveau — are real and tagged. But they appear at low volume in our pull, and no single Eastern European city (outside Moscow) has the institutional weight to function as a routing anchor for Western museum loans. This gap is acceptable at the current scale. Prague is the natural candidate when the system expands.</p>
+
+  <h3>Chicago — why it was removed</h3>
+  <p>Chicago was added to the system early on the strength of the database-home axiom: the Art Institute of Chicago is one of our eight source databases, and it seemed wrong to exclude the home city of a primary data source. The AIC's Impressionist collection is world-class — Seurat's <em>Sunday on La Grande Jatte</em>, Monet, Toulouse-Lautrec — and its Architecture archive is genuinely unmatched.</p>
+
+  <p>Architecture was Chicago's exclusive tag: the Chicago School invented the modern skyscraper, and the AIC holds Burnham & Root drawings, Louis Sullivan ornamental designs, and the most complete American architectural archive in any museum collection. No other city in the system scored Architecture above background noise.</p>
+
+  <p><strong>Chicago was removed because Architecture is not an auction-relevant tag.</strong> The works that carry it — architectural drawings, plans, building models, ornamental studies — rarely appear in the collection-routing and exhibition contexts this system is built for. Auctioneers do not bid on buildings. Architectural drawings do appear at auction (Frank Lloyd Wright plans, Le Corbusier sketches) but at volumes too low and in categories too narrow to justify a full city node. A city whose exclusive tag fires on works outside our operational scope is dead weight by definition, regardless of how strong the institution is.</p>
+
+  <p>Chicago's remaining affinities — Impressionism and American painting — are already covered at higher multipliers by Paris and New York respectively. The database-home argument is real but not sufficient on its own: the axiom justifies enriched institutional knowledge, not a city slot that adds no scoring signal. Chicago is the honest case where a genuinely great museum city fails the system's requirements — not because the city is wrong, but because this system's scope doesn't reach what the city exclusively owns.</p>
+
+  <p>The remaining three American cities — New York, Washington DC, and Los Angeles — are each structurally distinct and pass all three selection principles with clear exclusivity. Three US cities is the correct number for this system at this scale.</p>
+
+  <h3>Africa — choosing the right anchor</h3>
+
+  <p>African art is not a gap in our databases — it is a real and substantial presence. The Smithsonian's National Museum of African Art holds over 12,000 objects and is one of the primary sources for our African tag cluster. The Cleveland Museum of Art holds world-class West and Central African holdings. The Met's African collection spans the continent. Tags that fire meaningfully in our system include: <em>African, West African, Sub-Saharan African, Yoruba, Benin Kingdom, Akan, Kuba, Fang, Bamana, Dogon, Malinke, Senufo</em> — the major artistic traditions of the continent's western, central, and coastal cultures. These tags are real, they fire on actual works in our databases, and they need a city.</p>
+
+  <p>Three cities were seriously considered:</p>
+
+  <p><strong>Dakar</strong> (Senegal): The Dak'Art Biennial has been Africa's foremost platform for contemporary art since 1992. Every major African artist, curator, and collector passes through during biennial years — the event has shaped African contemporary art's international reception more than any other single institution. IFAN (Institut Fondamental d'Afrique Noire) holds one of the deepest ethnographic collections of West African objects anywhere in the world, including significant Senegambian, Manding, Wolof, and Fula material culture. The city carries the intellectual legacy of Léopold Sédar Senghor — poet, philosopher, and president — and the Négritude movement he led, which redefined how Africa's artistic traditions were seen by the world. Dakar is culturally the most correct African anchor for a system grounded in art history and cultural resonance. The honest weakness: touring infrastructure is thin. Fewer direct intercontinental flights, less established institutional loan framework compared to southern African cities.</p>
+
+  <p><strong>Lagos</strong> (Nigeria): Africa's largest city by population and a genuine contemporary art market with Art Lagos fair, Omenka Gallery, and a growing collector base. The case against Lagos as a system anchor: it is primarily a market city, not an institution city. No Lagos museum has the collection depth, curatorial infrastructure, or established international loan culture that would justify a multiplier anchor. Market activity without institutional weight is noise in a collection-routing system. Lagos matters commercially; it does not yet anchor the African tradition the way a multiplier city requires.</p>
+
+  <p><strong>Johannesburg</strong> (South Africa): Zeitz MOCAA is the single strongest counter-argument to Dakar. Opened in 2017 in a converted grain silo, it holds the largest dedicated collection of contemporary African art in the world, with an explicit mission to collect and exhibit work from the African continent. Art Joburg fair, direct European and American flights, established relationships with Western lending institutions. Johannesburg is logistically the strongest African city in the system and institutionally the most directly aligned with the tags our databases carry. The honest weakness: Johannesburg's African canon is more southern and contemporary; the West and Central African traditions dominant in our databases (Yoruba, Benin Kingdom, Akan, Kuba) are not its core institutional strength.</p>
+
+  <p><strong>The decision and the honest tension</strong>: Dakar is in the system because cultural depth and historical significance matter — the biennial, IFAN, and the Négritude intellectual tradition give it an authenticity that Johannesburg, for all its institutional muscle, does not replicate. But this is a live choice, not a settled one. Curators prioritizing logistical confidence and contemporary African art routing should weight Johannesburg seriously. The system will likely support both cities eventually, as African database coverage deepens. For now, it carries Dakar — the city that shaped how the world learned to see African art — with full awareness that Johannesburg holds the collection that contemporary routing would most directly benefit from.</p>
+
+  <h3>What is not a gap</h3>
+  <p>Australia was debated. The conclusion: Sydney belongs in the system not primarily for Aboriginal Australian tags (sparse in our databases) but as the <strong>Pacific and Oceanian anchor</strong>. The Met and Smithsonian hold Pacific works — Polynesian, Melanesian, Oceanian — that currently score zero city bonus. Sydney's AGNSW, combined with its status as a genuine international touring destination, satisfies all three selection principles. Sydney is included.</p>
+</div>
+
+<hr class="divider">
+
+
+<!-- 08 LIVING SYSTEM -->
+<div class="section" id="living">
+  <div class="section-num">08</div>
+  <h2>The Living System</h2>
+
+  <p>The city affinity system is not a fixed taxonomy. Cities gain and lose relevance. Geopolitical conditions change. New institutions open. Database coverage deepens. The system must be built to evolve without requiring a philosophical rebuild each time.</p>
+
+  <h3>The risk flag</h3>
+  <p>Moscow carries a risk flag. This is not a political statement — it is a logistical fact. Works cannot currently be insured for travel to Russia, contracts cannot be settled under sanctions, and several major Western museums have formally suspended Russian partnerships. The risk flag does not remove Moscow from the system; it removes it from active routing recommendations. The multipliers remain live for internal scoring. When conditions change, the flag lifts and Moscow re-enters the routing pool without any other changes required.</p>
+
+  <h3>Seasonal activation</h3>
+  <p>Some cities should not be permanently active. The Venice Biennale runs in odd-numbered years — Venice as a touring node is meaningful during Biennale years and marginal otherwise. Art Basel creates a June window for Basel/Zurich. These are not current cities in the system, but the architecture should support a <em>temporal activation</em> model: cities that are on or off based on the calendar, not just curator preference.</p>
+
+  <h3>Database-driven city emergence</h3>
+  <p>The right trigger for adding a new city is a measurable increase in tag volume from an underrepresented tradition. If our next database integration brings 10,000 Thai and Khmer works with consistent tagging, Bangkok earns its place immediately — the data has arrived before the city was added. This is the correct order. <strong>Data first, city second.</strong></p>
+
+  <h3>The database home cities principle</h3>
+  <p>Database home cities carry a structural advantage: the Met's metadata is richer in New York, the Rijksmuseum's metadata is richer in Amsterdam, the Smithsonian's metadata is richer in Washington DC. Routing a work toward these cities means routing it toward the deepest institutional knowledge we have. Washington DC was added to the system specifically because the Smithsonian is one of our eight databases — its absence from the original city list was an oversight, now corrected.</p>
+
+  <p>The database-home principle is real, but it is not sufficient on its own. The Art Institute of Chicago is also a primary database — yet Chicago was removed. The reason: Chicago's exclusive tag (Architecture) falls outside the scope of works this system routes. A database-home city that scores nothing a curator would actually route is an axiom applied beyond its useful range. <strong>The principle holds when the database's collection overlaps with the system's operational domain. When it doesn't, the city must earn its place on tag coverage alone — and Chicago couldn't.</strong></p>
+
+  <div class="pull">
+    <p>The system is complete when every tradition in our databases has a city to travel to, every city in the system fires on works that actually exist, and every conflict is managed by design rather than discovered by surprise.</p>
+    <span class="attr">Design principle, City Affinity v2.0</span>
+  </div>
+
+  <h3>The full active city list</h3>
+
+  <div class="city-pill-grid">
+    <span class="city-pill core"><span class="flag">🇫🇷</span>Paris</span>
+    <span class="city-pill core"><span class="flag">🇮🇹</span>Rome</span>
+    <span class="city-pill core"><span class="flag">🇪🇸</span>Madrid</span>
+    <span class="city-pill pair"><span class="flag">🇳🇱</span>Amsterdam</span>
+    <span class="city-pill pair"><span class="flag">🇧🇪</span>Brussels</span>
+    <span class="city-pill core"><span class="flag">🇩🇪</span>Berlin</span>
+    <span class="city-pill new"><span class="flag">🇦🇹</span>Vienna</span>
+    <span class="city-pill core"><span class="flag">🇬🇧</span>London</span>
+    <span class="city-pill new"><span class="flag">🇸🇪</span>Stockholm</span>
+    <span class="city-pill new"><span class="flag">🇬🇷</span>Athens</span>
+    <span class="city-pill risk"><span class="flag">🇷🇺</span>Moscow ⚠</span>
+    <span class="city-pill pair"><span class="flag">🇪🇬</span>Cairo</span>
+    <span class="city-pill pair"><span class="flag">🇹🇷</span>Istanbul</span>
+    <span class="city-pill new"><span class="flag">🇦🇪</span>Abu Dhabi</span>
+    <span class="city-pill new"><span class="flag">🇸🇳</span>Dakar</span>
+    <span class="city-pill new"><span class="flag">🇮🇳</span>Delhi</span>
+    <span class="city-pill core"><span class="flag">🇺🇸</span>New York</span>
+<span class="city-pill new"><span class="flag">🇺🇸</span>Washington DC</span>
+    <span class="city-pill new"><span class="flag">🇺🇸</span>Los Angeles</span>
+    <span class="city-pill pair"><span class="flag">🇧🇷</span>São Paulo</span>
+    <span class="city-pill pair"><span class="flag">🇲🇽</span>Mexico City</span>
+    <span class="city-pill pair"><span class="flag">🇯🇵</span>Tokyo</span>
+    <span class="city-pill pair"><span class="flag">🇯🇵</span>Kyoto</span>
+    <span class="city-pill pair"><span class="flag">🇨🇳</span>Beijing</span>
+    <span class="city-pill pair"><span class="flag">🇨🇳</span>Shanghai</span>
+    <span class="city-pill new"><span class="flag">🇰🇷</span>Seoul</span>
+    <span class="city-pill new"><span class="flag">🇦🇺</span>Sydney</span>
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--s2);border:1px solid var(--border2);display:inline-block"></span>Core (original 12)</span>
+    <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#f59e0b22;border:1px solid #f59e0b55;display:inline-block"></span>New addition</span>
+    <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#8b5cf622;border:1px solid #8b5cf655;display:inline-block"></span>Conflict pair</span>
+    <span style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#ef444422;border:1px solid #ef444433;display:inline-block"></span>Risk / non-touring</span>
+  </div>
+</div>
+
+
+<!-- FOOTNOTES -->
+<div class="footnotes">
+  <div class="footnote"><span class="fn-num">1</span>Tag frequency estimates are based on known database compositions as of the time of writing, not direct API queries. Actual distribution should be validated against live data as the pipeline matures.</div>
+  <div class="footnote"><span class="fn-num">2</span>The 4.0× theoretical maximum assumes multiplicative stacking of two 2.0× tags. In practice, very few works in our databases carry both a 2.0× national identity tag and a 2.0× movement tag for the same city — Paris being the primary exception (French + Impressionism).</div>
+  <div class="footnote"><span class="fn-num">3</span>Abu Dhabi functions as a Persian/Gulf proxy pending future geopolitical conditions. If and when Tehran becomes a viable international touring destination, it should be added as a first-class city with Persian, Safavid, and Timurid as 2.0× tags, distinct from Abu Dhabi's Gulf-contemporary character.</div>
+  <div class="footnote"><span class="fn-num">4</span>Florence's exclusion should be revisited if and when the data pipeline consistently produces qualified sub-period tags (Early Renaissance, High Renaissance) rather than the flat Renaissance value. The philosophical case for Florence is sound; only the data quality case is currently weak.</div>
+</div>
+
+</div><!-- /page -->
+</body>
+</html>
