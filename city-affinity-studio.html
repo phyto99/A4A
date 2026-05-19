@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArtNexus · City Affinity Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
 <style>
 :root {
   --bg:#0d0f12; --surface:#141720; --s2:#1c2030; --s3:#232840;
@@ -12,21 +13,60 @@
   --accent:#6366f1; --accent2:#818cf8;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:13px;line-height:1.5;min-height:100vh;padding:20px;max-width:1600px;margin:0 auto}
+body{background:#0d0f12;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:13px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+#globe-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0}
+.studio-ui{position:relative;z-index:10;max-width:1600px;margin:0 auto;padding:20px;pointer-events:none}
+.studio-ui>*{pointer-events:auto}
+.city-grid{display:none}
+
+/* glass panels */
+header,
+.profiles-bar,
+.groups-bar,
+.stat-card{background:rgba(13,15,18,0.78)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+
+/* city hover panel */
+#city-hover-panel{position:fixed;bottom:28px;left:28px;z-index:400;width:420px;display:none;pointer-events:auto}
+#city-hover-panel .city-card{opacity:1!important;filter:none!important;pointer-events:auto;background:rgba(13,15,18,0.92);backdrop-filter:blur(12px)}
+#city-hover-panel .city-card.off{opacity:.5!important}
+.chp-hint{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:5px;text-align:center}
 
 /* ── HEADER ── */
-header{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header{border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .logo{font-size:15px;font-weight:600;color:#818cf8}
 .logo span{color:var(--muted)}
 .header-sub{font-size:11px;color:var(--muted)}
 .header-stat{margin-left:auto;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:11px;color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-weight:600}
 
-/* ── BARS ── */
-.preset-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.preset-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;white-space:nowrap}
-.preset-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--s2);color:var(--dim);font-family:'IBM Plex Mono',monospace;transition:all .12s;letter-spacing:.2px}
-.preset-btn:hover{color:var(--text);border-color:var(--accent2)}
-.preset-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* ── PROFILES BAR ── */
+.profiles-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bar-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;flex-shrink:0;white-space:nowrap;font-family:'IBM Plex Mono',monospace}
+.profile-list{display:flex;flex-wrap:wrap;gap:5px;flex:1}
+.profile-btn{padding:5px 12px;border-radius:5px;border:1px solid var(--border2);background:var(--s2);color:var(--dim);font-size:12px;cursor:pointer;transition:all .13s;font-family:inherit;display:flex;align-items:baseline;gap:6px}
+.profile-btn:hover{border-color:var(--accent2);color:var(--text)}
+.profile-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.route-cities{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.profile-btn.active .route-cities{color:rgba(255,255,255,.6)}
+.dim-btn{color:var(--muted);border-color:var(--border)}
+
+/* ── GROUPS + CONFLICTS BAR ── */
+.groups-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px}
+.groups-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.group-chips{display:flex;flex-wrap:wrap;gap:5px}
+.group-chip{padding:4px 12px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;transition:all .13s;font-family:inherit}
+.group-chip:hover{border-color:var(--border2);color:var(--dim)}
+.group-chip.on{background:var(--s2);border-color:var(--border2);color:var(--text)}
+.group-chip.partial{border-color:var(--border2);color:var(--dim);border-style:dashed}
+.conflicts-row{display:flex;flex-wrap:wrap;gap:7px}
+.conflict-item{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.conflict-lbl{padding:4px 8px;font-size:9px;font-weight:700;color:var(--muted);background:var(--s3);border-right:1px solid var(--border);display:flex;align-items:center;text-transform:uppercase;letter-spacing:.04em;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.cseg{padding:4px 10px;font-size:11px;background:transparent;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .13s;white-space:nowrap;font-family:inherit}
+.cseg:last-child{border-right:none}
+.cseg:hover{background:var(--s2);color:var(--dim)}
+.cseg.active{background:var(--s2);color:var(--text);font-weight:600}
+.cseg.both-seg.active{background:#f59e0b22;color:#f59e0b}
+.cseg.off-seg{font-size:13px;color:var(--border2)}
+.cseg.off-seg.active{color:var(--muted);background:transparent}
 
 /* ── VIEW TOGGLE ── */
 .view-toggle-wrap{margin-left:auto;display:flex;align-items:center;gap:8px}
@@ -36,37 +76,33 @@ header{background:var(--surface);border:1px solid var(--border);border-radius:10
 .view-seg.active{background:var(--s2);color:var(--text)}
 .view-seg.active.player-seg{background:#6366f1;color:#fff}
 
-/* ── SELECTOR PANEL ── */
-.selector-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:16px}
-.selector-panel-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:12px}
-.regions{display:flex;flex-direction:column;gap:10px}
-.region-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.region-name{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;min-width:110px;font-family:'IBM Plex Mono',monospace}
-.region-cities{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-
-/* Solo toggle */
-.solo-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--s3);color:var(--muted);transition:all .12s;user-select:none}
-.solo-btn .flag{font-size:14px;line-height:1}
-.solo-btn.on{background:var(--s2);border-color:var(--border2);color:var(--text)}
-.solo-btn.on .dot{background:var(--accent2)}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .12s}
-.db-pip{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;padding:1px 4px;border-radius:3px;background:#6366f122;color:#818cf8;margin-left:2px}
-
-/* Conflict pair */
-.conflict-group{display:flex;align-items:center;gap:0;border:1px solid var(--border2);border-radius:7px;overflow:hidden;background:var(--s3)}
-.conflict-seg{padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all .12s;display:flex;align-items:center;gap:5px;font-family:inherit;white-space:nowrap}
-.conflict-seg .flag{font-size:13px}
-.conflict-seg:hover{color:var(--dim)}
-.conflict-seg.active{background:var(--s2);color:var(--text)}
-.conflict-seg.active.both{background:var(--accent);color:#fff}
-.conflict-divider{font-size:9px;color:var(--border2);padding:0 2px;pointer-events:none;font-family:'IBM Plex Mono',monospace;font-weight:600}
-.conflict-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;padding:0 6px;border-right:1px solid var(--border);font-family:'IBM Plex Mono',monospace;min-width:60px}
+/* ── PROFILES BAR — two rows ── */
+.profiles-bar{flex-direction:column;gap:8px;align-items:stretch}
+.profiles-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.style-btn.active{background:#d97706;border-color:#d97706;color:#fff}
 
 /* ── STATS ── */
 .stats-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:120px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex:1;min-width:120px;cursor:pointer;position:relative;transition:border-color .13s;user-select:none}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card.open{border-color:var(--accent2)}
 .stat-num{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:var(--accent2)}
-.stat-label{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+.stat-label{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:4px}
+.stat-label::after{content:'▾';font-size:9px;opacity:.4}
+.stat-card.open .stat-label::after{content:'▴';opacity:.8}
+.stat-dropdown{position:absolute;top:calc(100% + 5px);left:0;min-width:240px;max-width:400px;background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;z-index:200;display:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.stat-card.open .stat-dropdown{display:block}
+.drop-section{margin-bottom:9px}
+.drop-section:last-child{margin-bottom:0}
+.drop-title{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-family:'IBM Plex Mono',monospace}
+.drop-tags{display:flex;flex-wrap:wrap;gap:3px}
+.drop-tag{padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600}
+.drop-cities{display:flex;flex-wrap:wrap;gap:5px 10px}
+.drop-city{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.drop-rows{display:flex;flex-direction:column;gap:4px}
+.drop-row{display:flex;align-items:baseline;gap:8px;font-size:11px}
+.drop-row-val{font-family:'IBM Plex Mono',monospace;color:var(--accent2);flex-shrink:0}
+.drop-row-cities{color:var(--dim);flex:1;flex-wrap:wrap}
 
 /* ── CITY GRID ── */
 .city-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
@@ -116,6 +152,9 @@ header{background:var(--surface);border:1px solid var(--border);border-radius:10
 </style>
 </head>
 <body class="curator-mode">
+<div id="globe-bg"></div>
+<div id="city-hover-panel"></div>
+<div class="studio-ui">
 
 <header>
   <div class="logo">ArtNexus <span>·</span> City Affinity Studio</div>
@@ -123,39 +162,71 @@ header{background:var(--surface);border:1px solid var(--border);border-radius:10
   <div class="header-stat" id="header-stat">— active</div>
 </header>
 
-<!-- PRESETS + VIEW TOGGLE -->
-<div class="preset-bar">
-  <span class="preset-label">Profiles</span>
-  <button class="preset-btn active" onclick="applyPreset('core',this)">Core 13</button>
-  <button class="preset-btn" onclick="applyPreset('western',this)">Western Europe</button>
-  <button class="preset-btn" onclick="applyPreset('asia',this)">East Asia</button>
-  <button class="preset-btn" onclick="applyPreset('americas',this)">Americas</button>
-  <button class="preset-btn" onclick="applyPreset('mena',this)">MENA</button>
-  <button class="preset-btn" onclick="applyPreset('databases',this)">DB Cities</button>
-  <button class="preset-btn" onclick="applyPreset('all',this)">All</button>
-  <button class="preset-btn" onclick="applyPreset('none',this)">Clear</button>
-
-  <div class="view-toggle-wrap">
-    <span class="view-toggle-label">View</span>
-    <div class="view-toggle">
-      <button class="view-seg active" id="seg-curator" onclick="setView('curator')">Curator</button>
-      <button class="view-seg player-seg" id="seg-player" onclick="setView('player')">Player</button>
+<!-- PROFILES -->
+<div class="profiles-bar">
+  <div class="profiles-row">
+    <span class="bar-label">Region</span>
+    <div class="profile-list">
+      <button class="profile-btn active" id="pbtn-core"         onclick="applyPreset('core',this)">Core Coverage</button>
+      <button class="profile-btn route-btn" id="pbtn-routeA"   onclick="applyPreset('routeA',this)">Route A <span class="route-cities">Amst · Cairo · SP · Tokyo · Beijing</span></button>
+      <button class="profile-btn route-btn" id="pbtn-routeB"   onclick="applyPreset('routeB',this)">Route B <span class="route-cities">Bruss · Istanbul · MXC · Kyoto · Shanghai</span></button>
+      <button class="profile-btn" id="pbtn-western"            onclick="applyPreset('western',this)">W. Europe</button>
+      <button class="profile-btn" id="pbtn-eastasia"           onclick="applyPreset('eastasia',this)">East Asia</button>
+      <button class="profile-btn" id="pbtn-americas"           onclick="applyPreset('americas',this)">Americas</button>
+      <button class="profile-btn" id="pbtn-all"                onclick="applyPreset('all',this)">Global</button>
+      <button class="profile-btn dim-btn" id="pbtn-none"       onclick="applyPreset('none',this)">Clear</button>
+    </div>
+    <div class="view-toggle-wrap">
+      <span class="view-toggle-label">View</span>
+      <div class="view-toggle">
+        <button class="view-seg active" id="seg-curator" onclick="setView('curator')">Curator</button>
+        <button class="view-seg player-seg" id="seg-player" onclick="setView('player')">Player</button>
+      </div>
+    </div>
+  </div>
+  <div class="profiles-row">
+    <span class="bar-label">Style</span>
+    <div class="profile-list">
+      <button class="profile-btn style-btn" id="pbtn-impressionist" onclick="applyPreset('impressionist',this)">Impressionist Circuit</button>
+      <button class="profile-btn style-btn" id="pbtn-classical"     onclick="applyPreset('classical',this)">Ancient Worlds</button>
+      <button class="profile-btn style-btn" id="pbtn-baroque"       onclick="applyPreset('baroque',this)">The Golden Age</button>
+      <button class="profile-btn style-btn" id="pbtn-avantgarde"    onclick="applyPreset('avantgarde',this)">The Modern Break</button>
+      <button class="profile-btn style-btn" id="pbtn-contemporary"  onclick="applyPreset('contemporary',this)">Contemporary Beat</button>
     </div>
   </div>
 </div>
 
-<!-- SELECTOR -->
-<div class="selector-panel">
-  <div class="selector-panel-title">City Selection — click any city or choose between conflict pairs</div>
-  <div class="regions" id="region-rows"></div>
+<!-- GROUPS + CONFLICTS -->
+<div class="groups-bar">
+  <div class="groups-row">
+    <span class="bar-label">Groups</span>
+    <div class="group-chips" id="group-chips"></div>
+  </div>
+  <div class="conflicts-row" id="conflicts-row"></div>
 </div>
 
 <!-- STATS -->
 <div class="stats-row">
-  <div class="stat-card"><div class="stat-num" id="s-active">—</div><div class="stat-label">Active cities</div></div>
-  <div class="stat-card"><div class="stat-num" id="s-tags">—</div><div class="stat-label">Unique affinity tags</div></div>
-  <div class="stat-card"><div class="stat-num" id="s-maxmult">—</div><div class="stat-label">Max stack (active)</div></div>
-  <div class="stat-card"><div class="stat-num" id="s-coverage">—</div><div class="stat-label">Regions covered</div></div>
+  <div class="stat-card" onclick="toggleStatDrop(this)">
+    <div class="stat-num" id="s-active">—</div>
+    <div class="stat-label">Active cities</div>
+    <div class="stat-dropdown" id="drop-active"></div>
+  </div>
+  <div class="stat-card" onclick="toggleStatDrop(this)">
+    <div class="stat-num" id="s-tags">—</div>
+    <div class="stat-label">Affinity tags</div>
+    <div class="stat-dropdown" id="drop-tags"></div>
+  </div>
+  <div class="stat-card" onclick="toggleStatDrop(this)">
+    <div class="stat-num" id="s-maxmult">—</div>
+    <div class="stat-label">Max stack</div>
+    <div class="stat-dropdown" id="drop-maxmult"></div>
+  </div>
+  <div class="stat-card" onclick="toggleStatDrop(this)">
+    <div class="stat-num" id="s-coverage">—</div>
+    <div class="stat-label">Regions covered</div>
+    <div class="stat-dropdown" id="drop-coverage"></div>
+  </div>
 </div>
 
 <!-- HINT -->
@@ -164,6 +235,7 @@ header{background:var(--surface);border:1px solid var(--border);border-radius:10
 <!-- CITY CARDS -->
 <div class="city-grid" id="city-grid"></div>
 
+</div><!-- /.studio-ui -->
 <script>
 // ══════════════════════════════════════════════════════════════════
 //  CITY DATA
@@ -516,52 +588,68 @@ const GROUPS = {
 };
 
 // ══════════════════════════════════════════════════════════════════
-//  PRESETS
+//  PRESETS  (region + style profiles)
 // ══════════════════════════════════════════════════════════════════
 const PRESETS = {
-  core:     {solos:['paris','rome','madrid','berlin','london','moscow','new-york','athens'],
-             groups:{benelux:'a',mena:'a',latam:'a',japan:'a',china:'a'}},
-  western:  {solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens'],
-             groups:{benelux:'both',mena:'none',latam:'none',japan:'none',china:'none'}},
-  asia:     {solos:['seoul'],
-             groups:{benelux:'none',mena:'none',latam:'none',japan:'both',china:'both'}},
-  americas: {solos:['new-york','washington','los-angeles'],
-             groups:{benelux:'none',mena:'none',latam:'both',japan:'none',china:'none'}},
-  mena:     {solos:['abu-dhabi'],
-             groups:{benelux:'none',mena:'both',latam:'none',japan:'none',china:'none'}},
-  databases:{solos:['paris','new-york','washington','london'],
-             groups:{benelux:'a',mena:'none',latam:'none',japan:'a',china:'none'}},
-  all:      {solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens','moscow','abu-dhabi','dakar','delhi','new-york','washington','los-angeles','seoul','sydney'],
-             groups:{benelux:'both',mena:'both',latam:'both',japan:'both',china:'both'}},
-  none:     {solos:[],groups:{benelux:'none',mena:'none',latam:'none',japan:'none',china:'none'}},
+  // ── Region ──
+  core:          {solos:['paris','rome','madrid','berlin','london','moscow','new-york','washington','athens','abu-dhabi','dakar','delhi'],
+                  groups:{benelux:'a',mena:'a',latam:'a',japan:'a',china:'a'}},
+  routeA:        {solos:['paris','rome','madrid','berlin','london','moscow','new-york','washington','athens','abu-dhabi','dakar','delhi','los-angeles','seoul','sydney'],
+                  groups:{benelux:'a',mena:'a',latam:'a',japan:'a',china:'a'}},
+  routeB:        {solos:['paris','rome','madrid','berlin','london','moscow','new-york','washington','athens','abu-dhabi','dakar','delhi','los-angeles','seoul','sydney'],
+                  groups:{benelux:'b',mena:'b',latam:'b',japan:'b',china:'b'}},
+  western:       {solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens'],
+                  groups:{benelux:'both',mena:'none',latam:'none',japan:'none',china:'none'}},
+  eastasia:      {solos:['seoul'],
+                  groups:{benelux:'none',mena:'none',latam:'none',japan:'both',china:'both'}},
+  americas:      {solos:['new-york','washington','los-angeles'],
+                  groups:{benelux:'none',mena:'none',latam:'both',japan:'none',china:'none'}},
+  all:           {solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens','moscow','abu-dhabi','dakar','delhi','new-york','washington','los-angeles','seoul','sydney'],
+                  groups:{benelux:'both',mena:'both',latam:'both',japan:'both',china:'both'}},
+  none:          {solos:[],groups:{benelux:'none',mena:'none',latam:'none',japan:'none',china:'none'}},
+
+  // ── Style ──
+  // Impressionist Circuit: Paris (home), Amsterdam (Van Gogh), London (National Gallery),
+  //   NY (Met), Tokyo (Japonisme — Monet/Van Gogh explicitly borrowed from Hokusai/Hiroshige)
+  impressionist: {solos:['paris','london','new-york'],
+                  groups:{benelux:'a',mena:'none',latam:'none',japan:'a',china:'none'}},
+
+  // Ancient Worlds: Athens (Greek), Rome (Roman), Cairo (Egyptian), Delhi (Mughal/Indian), Beijing (Imperial Chinese)
+  classical:     {solos:['athens','rome','delhi'],
+                  groups:{benelux:'none',mena:'a',latam:'none',japan:'none',china:'a'}},
+
+  // The Golden Age: Dutch Golden Age (Amsterdam) + Flemish Baroque (Brussels) + Spanish/Italian Baroque + Vienna
+  baroque:       {solos:['rome','madrid','vienna'],
+                  groups:{benelux:'both',mena:'none',latam:'none',japan:'none',china:'none'}},
+
+  // The Modern Break: Paris (Post-Impressionism → Cubism), Berlin (Expressionism/Bauhaus),
+  //   Moscow (Constructivism/Avant-garde), NY (Abstract Expressionism)
+  avantgarde:    {solos:['paris','berlin','moscow','new-york'],
+                  groups:{benelux:'none',mena:'none',latam:'none',japan:'none',china:'none'}},
+
+  // Contemporary Beat: NY, LA, London, Seoul, São Paulo, Sydney, Shanghai (Power Station of Art)
+  contemporary:  {solos:['new-york','los-angeles','london','seoul','sydney'],
+                  groups:{benelux:'none',mena:'none',latam:'a',japan:'none',china:'b'}},
 };
 
 // ══════════════════════════════════════════════════════════════════
-//  REGION LAYOUT
+//  REGION GROUPS  (geographic cluster chips)
 // ══════════════════════════════════════════════════════════════════
-const REGION_LAYOUT = [
-  {region:'France',                solos:['paris']},
-  {region:'Italy',                 solos:['rome']},
-  {region:'Iberia',                solos:['madrid']},
-  {region:'Benelux',               group:'benelux'},
-  {region:'German-speaking',       solos:['berlin','vienna']},
-  {region:'British Isles',         solos:['london']},
-  {region:'Nordic',                solos:['stockholm']},
-  {region:'Classical',             solos:['athens']},
-  {region:'Eastern Europe',        solos:['moscow']},
-  {region:'MENA',                  group:'mena', extra:{solos:['abu-dhabi']}},
-  {region:'Africa',                solos:['dakar']},
-  {region:'South Asia',            solos:['delhi']},
-  {region:'Americas',              solos:['new-york','washington','los-angeles']},
-  {region:'Latin America',         group:'latam'},
-  {region:'East Asia',             group:'japan', extra:{group:'china', solos:['seoul']}},
-  {region:'Pacific',               solos:['sydney']},
+const REGION_GROUPS = [
+  {id:'weurope',  label:'W. Europe',   solos:['paris','rome','madrid','berlin','vienna','london','stockholm','athens']},
+  {id:'russia',   label:'Russia',      solos:['moscow']},
+  {id:'gulf',     label:'Gulf',        solos:['abu-dhabi']},
+  {id:'africa',   label:'Africa',      solos:['dakar']},
+  {id:'india',    label:'India',       solos:['delhi']},
+  {id:'americas', label:'Americas',    solos:['new-york','washington','los-angeles']},
+  {id:'korea',    label:'Korea',       solos:['seoul']},
+  {id:'pacific',  label:'Pacific',     solos:['sydney']},
 ];
 
 // ══════════════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════════════
-let soloActive = new Set(['paris','rome','madrid','berlin','london','moscow','new-york','athens']);
+let soloActive = new Set(['paris','rome','madrid','berlin','london','moscow','new-york','washington','athens','abu-dhabi','dakar','delhi']);
 let viewMode = 'curator'; // 'curator' | 'player'
 
 function activeCityIds() {
@@ -587,52 +675,35 @@ function setView(mode) {
 //  SELECTOR BUILDER
 // ══════════════════════════════════════════════════════════════════
 function buildSelector() {
-  const container = document.getElementById('region-rows');
-  container.innerHTML = REGION_LAYOUT.map(row => {
-    const cells = [];
+  // Group chips
+  document.getElementById('group-chips').innerHTML = REGION_GROUPS.map(grp => {
+    const allOn  = grp.solos.every(s => soloActive.has(s));
+    const anyOn  = grp.solos.some(s => soloActive.has(s));
+    const cls    = allOn ? 'on' : anyOn ? 'partial' : '';
+    return `<button class="group-chip ${cls}" onclick="toggleGroup('${grp.id}')">${grp.label}</button>`;
+  }).join('');
 
-    const renderSolos = (ids) => ids.map(id => {
-      const city = CITIES.find(c => c.id === id);
-      if (!city) return '';
-      const on = soloActive.has(id);
-      const dbPip = city.dbCity ? `<span class="db-pip">${city.dbLabel}</span>` : '';
-      return `<button class="solo-btn ${on ? 'on' : ''}" onclick="toggleSolo('${id}')" id="sbtn-${id}">
-        <span class="flag">${city.flag}</span><span class="dot"></span>${city.name}${dbPip}
-      </button>`;
-    }).join('');
-
-    if (row.solos) cells.push(renderSolos(row.solos));
-    if (row.group) cells.push(renderGroupCtrl(row.group));
-    if (row.extra) {
-      if (row.extra.group) cells.push(renderGroupCtrl(row.extra.group));
-      if (row.extra.solos) cells.push(renderSolos(row.extra.solos));
-    }
-
-    return `<div class="region-row">
-      <span class="region-name">${row.region}</span>
-      <div class="region-cities">${cells.join('')}</div>
+  // Conflict selectors
+  document.getElementById('conflicts-row').innerHTML = Object.entries(GROUPS).map(([gid, g]) => {
+    const ca = CITIES.find(c => c.id === g.a);
+    const cb = CITIES.find(c => c.id === g.b);
+    return `<div class="conflict-item">
+      <span class="conflict-lbl">${g.label}</span>
+      <button class="cseg ${g.state==='a'?'active':''}"    onclick="setGroup('${gid}','a')">${ca.flag} ${ca.name}</button>
+      <button class="cseg both-seg ${g.state==='both'?'active':''}" onclick="setGroup('${gid}','both')">Both ⚠</button>
+      <button class="cseg ${g.state==='b'?'active':''}"    onclick="setGroup('${gid}','b')">${cb.flag} ${cb.name}</button>
+      <button class="cseg off-seg ${g.state==='none'?'active':''}" onclick="setGroup('${gid}','none')">—</button>
     </div>`;
   }).join('');
 }
 
-function renderGroupCtrl(gid) {
-  const g = GROUPS[gid];
-  const ca = CITIES.find(c => c.id === g.a);
-  const cb = CITIES.find(c => c.id === g.b);
-  return `<div class="conflict-group" id="cg-${gid}">
-    <span class="conflict-label">${g.label}</span>
-    <button class="conflict-seg a ${g.state==='a'?'active':''}" onclick="setGroup('${gid}','a')">
-      <span class="flag">${ca.flag}</span>${ca.name}
-    </button>
-    <span class="conflict-divider">OR</span>
-    <button class="conflict-seg both ${g.state==='both'?'active both':''}" onclick="setGroup('${gid}','both')">Both</button>
-    <span class="conflict-divider">OR</span>
-    <button class="conflict-seg b ${g.state==='b'?'active':''}" onclick="setGroup('${gid}','b')">
-      <span class="flag">${cb.flag}</span>${cb.name}
-    </button>
-    <span class="conflict-divider" style="padding:0 4px">·</span>
-    <button class="conflict-seg ${g.state==='none'?'active':''}" style="font-size:10px;padding:5px 8px" onclick="setGroup('${gid}','none')">Off</button>
-  </div>`;
+function toggleGroup(id) {
+  const grp = REGION_GROUPS.find(g => g.id === id);
+  if (!grp) return;
+  const allOn = grp.solos.every(s => soloActive.has(s));
+  grp.solos.forEach(s => allOn ? soloActive.delete(s) : soloActive.add(s));
+  clearActiveProfile();
+  render();
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -684,25 +755,114 @@ function renderCards() {
 
 function updateStats(active) {
   const activeCities = CITIES.filter(c => active.has(c.id));
-  const tags = new Set(activeCities.flatMap(c => c.affinities.map(a => a.tag)));
-  const maxMult = Math.max(...activeCities.flatMap(c => c.affinities.map(a => a.mult)), 0);
-  const regions = new Set(activeCities.map(c => c.region));
-  document.getElementById('s-active').textContent = active.size;
-  document.getElementById('s-tags').textContent = tags.size;
-  document.getElementById('s-maxmult').textContent = maxMult ? maxMult.toFixed(1)+'×' : '—';
-  document.getElementById('s-coverage').textContent = regions.size;
+
+  // tag color map from all cities
+  const tagColor = {};
+  CITIES.forEach(c => c.affinities.forEach(a => { if (!tagColor[a.tag]) tagColor[a.tag] = a.color; }));
+
+  const allTags    = new Set(CITIES.flatMap(c => c.affinities.map(a => a.tag)));
+  const activeTags = new Set(activeCities.flatMap(c => c.affinities.map(a => a.tag)));
+  const unusedTags = [...allTags].filter(t => !activeTags.has(t)).sort();
+  const maxMult    = Math.max(...activeCities.flatMap(c => c.affinities.map(a => a.mult)), 0);
+  const regions    = new Set(activeCities.map(c => c.region));
+  const allRegions = [...new Set(CITIES.map(c => c.region))];
+
+  document.getElementById('s-active').textContent   = active.size + ' / ' + CITIES.length;
+  document.getElementById('s-tags').textContent     = activeTags.size + ' / ' + allTags.size;
+  document.getElementById('s-maxmult').textContent  = maxMult ? maxMult.toFixed(1)+'×' : '—';
+  document.getElementById('s-coverage').textContent = regions.size + ' / ' + allRegions.length;
   document.getElementById('header-stat').textContent = active.size+' / '+CITIES.length+' cities active';
+
+  const inactiveCities = CITIES.filter(c => !active.has(c.id));
+
+  // ── Drop 1: active + inactive cities ──
+  document.getElementById('drop-active').innerHTML = `
+    <div class="drop-section">
+      <div class="drop-title">Active (${activeCities.length})</div>
+      <div class="drop-cities">${activeCities.map(c =>
+        `<span class="drop-city"><span>${c.flag}</span>${c.name}</span>`
+      ).join('')}</div>
+    </div>
+    <div class="drop-section">
+      <div class="drop-title" style="color:var(--muted)">Inactive (${inactiveCities.length})</div>
+      <div class="drop-cities">${inactiveCities.map(c =>
+        `<span class="drop-city" style="opacity:.45"><span>${c.flag}</span>${c.name}</span>`
+      ).join('')}</div>
+    </div>`;
+
+  // ── Drop 2: tags used + unused ──
+  const activeTagsSorted = [...activeTags].sort();
+  document.getElementById('drop-tags').innerHTML = `
+    <div class="drop-section">
+      <div class="drop-title">Active tags (${activeTags.size})</div>
+      <div class="drop-tags">${activeTagsSorted.map(t =>
+        `<span class="drop-tag" style="background:${tagColor[t]}22;color:${tagColor[t]}">${t}</span>`
+      ).join('')}</div>
+    </div>
+    ${unusedTags.length ? `<div class="drop-section">
+      <div class="drop-title">Not covered (${unusedTags.length})</div>
+      <div class="drop-tags">${unusedTags.map(t =>
+        `<span class="drop-tag" style="background:var(--s3);color:var(--muted)">${t}</span>`
+      ).join('')}</div>
+    </div>` : '<div class="drop-section"><div class="drop-title" style="color:var(--accent2)">All tags covered ✓</div></div>'}`;
+
+  // ── Drop 3: max stack — cities grouped by top multiplier ──
+  const byMult = {};
+  activeCities.forEach(c => {
+    const best = Math.max(...c.affinities.map(a => a.mult));
+    const key  = best.toFixed(1)+'×';
+    if (!byMult[key]) byMult[key] = [];
+    byMult[key].push(c);
+  });
+  const multEntries = Object.entries(byMult).sort((a,b) => parseFloat(b[0]) - parseFloat(a[0]));
+  document.getElementById('drop-maxmult').innerHTML = `
+    <div class="drop-section">
+      <div class="drop-title">Cities by peak multiplier</div>
+      <div class="drop-rows">${multEntries.map(([mult, cities]) =>
+        `<div class="drop-row">
+          <span class="drop-row-val">${mult}</span>
+          <span class="drop-row-cities">${cities.map(c => c.flag+' '+c.name).join(' · ')}</span>
+        </div>`
+      ).join('')}</div>
+    </div>`;
+
+  // ── Drop 4: regions covered / uncovered ──
+  const coveredRegions   = allRegions.filter(r => regions.has(r));
+  const uncoveredRegions = allRegions.filter(r => !regions.has(r));
+  document.getElementById('drop-coverage').innerHTML = `
+    <div class="drop-section">
+      <div class="drop-title">Covered (${coveredRegions.length})</div>
+      <div class="drop-tags">${coveredRegions.map(r =>
+        `<span class="drop-tag" style="background:var(--s2);color:var(--dim)">${r}</span>`
+      ).join('')}</div>
+    </div>
+    ${uncoveredRegions.length ? `<div class="drop-section">
+      <div class="drop-title">Not active (${uncoveredRegions.length})</div>
+      <div class="drop-tags">${uncoveredRegions.map(r =>
+        `<span class="drop-tag" style="background:transparent;color:var(--muted);border:1px dashed var(--border)">${r}</span>`
+      ).join('')}</div>
+    </div>` : ''}`;
 }
+
+function toggleStatDrop(card) {
+  const wasOpen = card.classList.contains('open');
+  document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('open'));
+  if (!wasOpen) card.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.stat-card'))
+    document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('open'));
+});
 
 // ══════════════════════════════════════════════════════════════════
 //  EVENTS
 // ══════════════════════════════════════════════════════════════════
-function toggleSolo(id) {
-  soloActive.has(id) ? soloActive.delete(id) : soloActive.add(id);
-  render();
+function clearActiveProfile() {
+  document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
 }
 function setGroup(gid, state) {
   GROUPS[gid].state = state;
+  clearActiveProfile();
   render();
 }
 function applyPreset(key, btn) {
@@ -712,16 +872,170 @@ function applyPreset(key, btn) {
   for (const [gid, state] of Object.entries(p.groups)) {
     if (GROUPS[gid]) GROUPS[gid].state = state;
   }
-  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  clearActiveProfile();
   btn.classList.add('active');
   render();
 }
 function render() {
   buildSelector();
   renderCards();
+  updateGlobe();
 }
 
 render();
+
+// ══════════════════════════════════════════════════════════════════
+//  GLOBE
+// ══════════════════════════════════════════════════════════════════
+const CITY_COORDS = {
+  'paris':       {lat:48.8566, lng:2.3522},
+  'rome':        {lat:41.9028, lng:12.4964},
+  'madrid':      {lat:40.4168, lng:-3.7038},
+  'amsterdam':   {lat:52.3676, lng:4.9041},
+  'brussels':    {lat:50.8503, lng:4.3517},
+  'berlin':      {lat:52.5200, lng:13.4050},
+  'vienna':      {lat:48.2082, lng:16.3738},
+  'london':      {lat:51.5074, lng:-0.1278},
+  'stockholm':   {lat:59.3293, lng:18.0686},
+  'athens':      {lat:37.9838, lng:23.7275},
+  'moscow':      {lat:55.7558, lng:37.6173},
+  'cairo':       {lat:30.0444, lng:31.2357},
+  'istanbul':    {lat:41.0082, lng:28.9784},
+  'abu-dhabi':   {lat:24.4539, lng:54.3773},
+  'dakar':       {lat:14.7167, lng:-17.4677},
+  'delhi':       {lat:28.6139, lng:77.2090},
+  'new-york':    {lat:40.7128, lng:-74.0060},
+  'washington':  {lat:38.9072, lng:-77.0369},
+  'los-angeles': {lat:34.0522, lng:-118.2437},
+  'mexico-city': {lat:19.4326, lng:-99.1332},
+  'sao-paulo':   {lat:-23.5505, lng:-46.6333},
+  'tokyo':       {lat:35.6762, lng:139.6503},
+  'kyoto':       {lat:35.0116, lng:135.7681},
+  'beijing':     {lat:39.9042, lng:116.4074},
+  'shanghai':    {lat:31.2304, lng:121.4737},
+  'seoul':       {lat:37.5665, lng:126.9780},
+  'sydney':      {lat:-33.8688, lng:151.2093},
+};
+
+let globeInstance = null;
+
+function renderCityCard(city) {
+  const active = activeCityIds();
+  const on = active.has(city.id);
+  const topAffinities = [...city.affinities].sort((a,b) => b.mult - a.mult).slice(0, 5);
+  const affinityRows = topAffinities.map(a =>
+    `<div class="affinity-pill" style="background:${a.color}1a;">
+      <span class="affinity-pill-tag" style="color:${a.color}">${a.tag}</span>
+      <span class="affinity-pill-mult" style="color:${a.color}">${a.mult.toFixed(1)}×</span>
+    </div>`
+  ).join('');
+  const dbTag = city.dbCity ? `<span class="city-db-tag">${city.dbLabel}</span>` : '';
+  return `<div class="city-card ${on?'':'off'} ${city.dbCity?'db-city':''}">
+    <div class="city-header">
+      <div class="city-flag">${city.flag}</div>
+      <div>
+        <div class="city-name">${city.name} ${dbTag}</div>
+        <div class="city-sub">${city.sub}</div>
+      </div>
+    </div>
+    <div class="city-body">
+      <div class="affinity-list">${affinityRows}</div>
+      <div class="city-strategy">
+        <span class="strategy-curator"><strong>Strategy:</strong> ${city.strategy}</span>
+        <span class="strategy-lore">${city.lore}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showCityPanel(city) {
+  const panel = document.getElementById('city-hover-panel');
+  if (!city) { panel.style.display = 'none'; return; }
+  const active = activeCityIds().has(city.id);
+  panel.innerHTML = renderCityCard(city) +
+    `<div class="chp-hint">${active ? 'click globe dot to deactivate' : 'click globe dot to activate'}</div>`;
+  panel.style.display = 'block';
+}
+
+function initGlobe() {
+  const el = document.getElementById('globe-bg');
+  if (!el || typeof Globe === 'undefined') return;
+
+  const citiesWithCoords = CITIES.filter(c => CITY_COORDS[c.id]);
+
+  globeInstance = new Globe(el)
+    .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
+    .backgroundColor('rgba(0,0,0,1)')
+    .atmosphereColor('#6366f1')
+    .atmosphereAltitude(0.12)
+    .pointsData(citiesWithCoords)
+    .pointLat(d => CITY_COORDS[d.id].lat)
+    .pointLng(d => CITY_COORDS[d.id].lng)
+    .pointColor(d => activeCityIds().has(d.id) ? '#818cf8' : '#334155')
+    .pointRadius(d => activeCityIds().has(d.id) ? 0.55 : 0.28)
+    .pointAltitude(0.01)
+    .pointResolution(8)
+    .onPointClick(d => {
+      const inGroup = Object.entries(GROUPS).find(([,g]) => g.a === d.id || g.b === d.id);
+      if (inGroup) {
+        const [, g] = inGroup;
+        const side = g.a === d.id ? 'a' : 'b';
+        const other = side === 'a' ? 'b' : 'a';
+        if      (g.state === side)   g.state = 'none';
+        else if (g.state === 'none') g.state = side;
+        else if (g.state === other)  g.state = 'both';
+        else                         g.state = 'none';
+      } else {
+        soloActive.has(d.id) ? soloActive.delete(d.id) : soloActive.add(d.id);
+      }
+      clearActiveProfile();
+      render();
+    })
+    .onPointHover(d => showCityPanel(d || null));
+
+  globeInstance.controls().autoRotate = true;
+  globeInstance.controls().autoRotateSpeed = 0.25;
+
+  const resize = () => {
+    if (globeInstance && el.clientWidth > 0) {
+      globeInstance.width(window.innerWidth).height(window.innerHeight);
+    }
+  };
+  window.addEventListener('resize', resize);
+  [100, 500, 1000].forEach(t => setTimeout(resize, t));
+}
+
+function updateGlobe() {
+  if (!globeInstance) return;
+  const active = activeCityIds();
+  const citiesWithCoords = CITIES.filter(c => CITY_COORDS[c.id]);
+
+  globeInstance
+    .pointColor(d => active.has(d.id) ? '#818cf8' : '#2d3748')
+    .pointRadius(d => active.has(d.id) ? 0.55 : 0.28);
+
+  // Arcs: all active city pairs, capped at 120 for performance
+  const activeList = citiesWithCoords.filter(c => active.has(c.id));
+  const arcs = [];
+  for (let i = 0; i < activeList.length && arcs.length < 120; i++)
+    for (let j = i+1; j < activeList.length; j++)
+      arcs.push({src: activeList[i], dst: activeList[j]});
+
+  globeInstance
+    .arcsData(arcs)
+    .arcStartLat(d => CITY_COORDS[d.src.id].lat)
+    .arcStartLng(d => CITY_COORDS[d.src.id].lng)
+    .arcEndLat(d => CITY_COORDS[d.dst.id].lat)
+    .arcEndLng(d => CITY_COORDS[d.dst.id].lng)
+    .arcColor(() => 'rgba(99,102,241,0.07)')
+    .arcStroke(0.25)
+    .arcDashLength(0.6)
+    .arcDashGap(0.4)
+    .arcDashAnimateTime(3500);
+}
+
+// Init globe after a short delay to let DOM settle
+setTimeout(initGlobe, 200);
 </script>
 </body>
 </html>
